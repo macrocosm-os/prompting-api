@@ -3,6 +3,7 @@
 
 import os
 import re
+import time
 import asyncio
 import json
 import traceback
@@ -24,6 +25,9 @@ from aiohttp.web_response import Response
 curl -X POST http://0.0.0.0:10000/chat/ -H "api_key: hello" -d '{"k": 5, "timeout": 3, "roles": ["user"], "messages": ["hello world"]}'
 
 curl -X POST http://0.0.0.0:10000/chat/ -H "api_key: hey-michal" -d '{"k": 5, "timeout": 3, "roles": ["user"], "messages": ["on what exact date did the 21st century begin?"]}'
+
+# stream
+curl --no-buffer -X POST http://129.146.127.82:10000/echo/ -H "api_key: hey-michal" -d '{"k": 3, "timeout": 0.2, "roles": ["user"], "messages": ["i need to tell you something important but first"]}'
 ```
 
 TROUBLESHOOT
@@ -31,11 +35,17 @@ check if port is open
 ```
 sudo ufw allow 10000/tcp
 sudo ufw allow 10000/tcp
-``` 
+```
 # run
 ```
 EXPECTED_ACCESS_KEY="hey-michal" pm2 start app.py --interpreter python3 --name app -- --neuron.model_id mock --wallet.name sn1 --wallet.hotkey v1 --netuid 1 --neuron.tasks math --neuron.task_p 1 --neuron.device cpu
 ```
+
+basic testing
+```
+EXPECTED_ACCESS_KEY="hey-michal" python app.py --neuron.model_id mock --wallet.name sn1 --wallet.hotkey v1 --netuid 1 --neuron.tasks math --neuron.task_p 1 --neuron.device cpu 
+```
+add --mock to test the echo stream
 """
 
 EXPECTED_ACCESS_KEY = os.environ.get('EXPECTED_ACCESS_KEY')
@@ -210,6 +220,62 @@ async def chat(request: web.Request) -> Response:
 
 
 
+async def echo_stream(request):
+    
+    bt.logging.info(f'echo_stream()')
+    # Check access key
+    access_key = request.headers.get("api_key")
+    if EXPECTED_ACCESS_KEY is not None and access_key != EXPECTED_ACCESS_KEY:
+        bt.logging.error(f'Invalid access key: {access_key}')
+        return Response(status=401, reason="Invalid access key")
+
+    try:
+        request_data = await request.json()
+    except ValueError:
+        bt.logging.error(f'Invalid request data: {request_data}')
+        return Response(status=400)
+
+    bt.logging.info(f'Request data: {request_data}')
+    k = request_data.get('k', 1)
+    exclude = request_data.get('exclude', [])
+    timeout = request_data.get('timeout', 0.2)    
+    message = '\n\n'.join(request_data['messages'])
+
+    # Create a StreamResponse
+    response = web.StreamResponse(status=200, reason='OK', headers={'Content-Type': 'text/plain'})
+    await response.prepare(request)
+
+    completion = ''
+    # Echo the message k times with a timeout between each chunk
+    for _ in range(k):
+        for word in message.split():
+            chunk = f'{word} '
+            await response.write(chunk.encode('utf-8'))
+            completion += chunk 
+            time.sleep(timeout)
+            bt.logging.info(f"Echoed: {chunk}")
+
+    completion = completion.strip()
+
+    # Prepare final JSON chunk
+    json_chunk = json.dumps({
+        "uids": [0],
+        "completion": completion,
+        "completions": [completion.strip()],
+        "timings": [0],
+        "status_messages": ['Went well!'],
+        "status_codes": [200],
+        "completion_is_valid": [True],
+        "task_name": 'echo',
+        "ensemble_result": {}
+    })
+    
+    # Send the final JSON as part of the stream
+    await response.write(f"\n\nJSON_RESPONSE_BEGIN:\n{json_chunk}".encode('utf-8'))
+
+    # Finalize the response
+    await response.write_eof()
+    return response
 
 class ValidatorApplication(web.Application):
     def __init__(self, *a, **kw):
@@ -218,7 +284,10 @@ class ValidatorApplication(web.Application):
 
 
 validator_app = ValidatorApplication()
-validator_app.add_routes([web.post('/chat/', chat)])
+validator_app.add_routes([
+    web.post('/chat/', chat),
+    web.post('/echo/', echo_stream)
+    ])
 
 bt.logging.info("Starting validator application.")
 bt.logging.info(validator_app)

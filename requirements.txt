@@ -1,2 +1,2 @@
-git+https://github.com/opentensor/prompting.git@main
+git+https://github.com/opentensor/prompting.git@features/move-validator-into-prompting
 aiohttp

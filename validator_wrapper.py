@@ -1,5 +1,5 @@
 import bittensor as bt
-from neurons.validator import Validator
+from prompting.validator import Validator
 from prompting.utils.uids import get_random_uids
 from prompting.protocol import PromptingSynapse
 from prompting.dendrite import DendriteResponseEvent
@@ -48,13 +48,13 @@ class S1ValidatorWrapper(ValidatorWrapper):
         bt.logging.info(f'Calling dendrite')
         responses = await self.validator.dendrite(
             axons=axons,
-            synapse=PromptingSynapse(roles=params.roles, messages=params.request_data.messages),
+            synapse=PromptingSynapse(roles=params.roles, messages=params.messages),
             timeout=params.timeout,
         )
         
         # Encapsulate the responses in a response event (dataclass)
         bt.logging.info(f"Creating DendriteResponseEvent:\n {responses}")
-        response_event = DendriteResponseEvent(responses, uids)
+        response_event = DendriteResponseEvent(responses, uids, params.timeout)
         return response_event
         
     

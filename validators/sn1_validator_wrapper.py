@@ -8,11 +8,11 @@ from prompting.validator import Validator
 from prompting.utils.uids import get_random_uids
 from prompting.protocol import PromptingSynapse, StreamPromptingSynapse
 from prompting.dendrite import DendriteResponseEvent
-from base import QueryValidatorParams, ValidatorWrapper
+from base import QueryValidatorParams, ValidatorAPI
 from aiohttp.web_response import Response, StreamResponse
 from deprecated import deprecated
 
-class S1ValidatorWrapper(ValidatorWrapper):
+class S1ValidatorAPI(ValidatorAPI):
     def __init__(self):
         self.validator = Validator()    
     

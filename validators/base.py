@@ -23,13 +23,13 @@ class QueryValidatorParams:
             prefer=data.get('prefer', 'longest')
         )
 
-class ValidatorWrapper(ABC):
+class ValidatorAPI(ABC):
     @abstractmethod
     async def query_validator(self, params:QueryValidatorParams) -> Response:
         pass
     
     
-class MockValidator(ValidatorWrapper):    
+class MockValidator(ValidatorAPI):    
     async def query_validator(self, params:QueryValidatorParams) -> Response:
         ...
         

@@ -58,9 +58,12 @@ class S1ValidatorWrapper(ValidatorWrapper):
         return response_event
         
     
-class MockValidator(ValidatorWrapper):
-    def query_validator(self, query: str) -> bool:
-        return False
+class MockValidator(ValidatorWrapper):    
+    async def query_validator(self, params:QueryValidatorParams) -> DendriteResponseEvent:
+        ...
+        
+        
+        
 
 
 

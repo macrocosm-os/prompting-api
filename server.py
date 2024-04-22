@@ -8,13 +8,8 @@ import asyncio
 import json
 import traceback
 import bittensor as bt
-
 from collections import Counter
-
-from neurons.validator import Validator
-from prompting.dendrite import DendriteResponseEvent
-from prompting.protocol import PromptingSynapse
-from prompting.utils.uids import get_random_uids
+from validator_wrapper import QueryValidatorParams, S1ValidatorWrapper
 from prompting.rewards import DateRewardModel, FloatDiffModel
 from aiohttp import web
 from aiohttp.web_response import Response
@@ -177,31 +172,16 @@ async def chat(request: web.Request) -> Response:
         bt.logging.error(f'Invalid request data: {request_data}')
         return Response(status=400)
 
-    bt.logging.info(f'Request data: {request_data}')
-    k = request_data.get('k', 10)
-    exclude = request_data.get('exclude', [])
-    timeout = request_data.get('timeout', 10)
-    prefer = request_data.get('prefer', 'longest')
+    bt.logging.info(f'Request data: {request_data}')    
+    
     try:
         # Guess the task name of current request
         task_name = guess_task_name(request_data['messages'][-1])
-        
+                        
         # Get the list of uids to query for this step.
-        uids = get_random_uids(validator, k=k, exclude=exclude or []).to(validator.device)
-        axons = [validator.metagraph.axons[uid] for uid in uids]
-
-        # Make calls to the network with the prompt.
-        bt.logging.info(f'Calling dendrite')
-        responses = await validator.dendrite(
-            axons=axons,
-            synapse=PromptingSynapse(roles=request_data['roles'], messages=request_data['messages']),
-            timeout=timeout,
-        )
-
-        bt.logging.info(f"Creating DendriteResponseEvent:\n {responses}")
-        # Encapsulate the responses in a response event (dataclass)
-        response_event = DendriteResponseEvent(responses, uids)
-
+        params = QueryValidatorParams.from_dict(request_data)
+        response_event = await validator.query_validator(params)        
+                
         # convert dict to json
         response = response_event.__state_dict__()
         
@@ -209,11 +189,11 @@ async def chat(request: web.Request) -> Response:
         valid_completions = [response['completions'][i] for i, v in enumerate(valid) if v]
 
         response['task_name'] = task_name
+        prefer = request_data.get('prefer', 'longest')
         response['ensemble_result'] = ensemble_result(valid_completions, task_name=task_name, prefer=prefer)
         
         bt.logging.info(f"Response:\n {response}")
         return Response(status=200, reason="I can't believe it's not butter!", text=json.dumps(response))
-
     except Exception:
         bt.logging.error(f'Encountered in {chat.__name__}:\n{traceback.format_exc()}')
         return Response(status=500, reason="Internal error")
@@ -294,7 +274,6 @@ bt.logging.info(validator_app)
 
 
 def main(run_aio_app=True, test=False) -> None:
-
     loop = asyncio.get_event_loop()
 
     # port = validator.metagraph.axons[validator.uid].port
@@ -308,5 +287,5 @@ def main(run_aio_app=True, test=False) -> None:
             pass
 
 if __name__ == "__main__":
-    validator = Validator()
+    validator = S1ValidatorWrapper()
     main()

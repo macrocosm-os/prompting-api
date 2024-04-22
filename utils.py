@@ -1,8 +1,9 @@
 import re
 import bittensor as bt
-
+import time
+import json
+from aiohttp import web
 from collections import Counter
-
 from prompting.rewards import DateRewardModel, FloatDiffModel
 
 UNSUCCESSFUL_RESPONSE_PATTERNS = ["I'm sorry", "unable to", "I cannot", "I can't", "I am unable", "I am sorry", "I can not", "don't know", "not sure", "don't understand", "not capable"]
@@ -95,7 +96,6 @@ def ensemble_result(completions: list, task_name: str, prefer: str = 'longest'):
     }
 
 def guess_task_name(challenge: str):
-
     # TODO: use a pre-trained classifier to guess the task name
     categories = {
         'summarization': re.compile('summar|quick rundown|overview'),
@@ -107,3 +107,46 @@ def guess_task_name(challenge: str):
             return task_name
 
     return 'qa'
+
+
+async def echo_stream(request_data: dict):
+    k = request_data.get('k', 1)
+    exclude = request_data.get('exclude', [])
+    timeout = request_data.get('timeout', 0.2)
+    message = '\n\n'.join(request_data['messages'])
+
+    # Create a StreamResponse
+    response = web.StreamResponse(status=200, reason='OK', headers={'Content-Type': 'text/plain'})
+    await response.prepare()
+
+    completion = ''
+    # Echo the message k times with a timeout between each chunk
+    for _ in range(k):
+        for word in message.split():
+            chunk = f'{word} '
+            await response.write(chunk.encode('utf-8'))
+            completion += chunk
+            time.sleep(timeout)
+            bt.logging.info(f"Echoed: {chunk}")
+
+    completion = completion.strip()
+
+    # Prepare final JSON chunk
+    json_chunk = json.dumps({
+        "uids": [0],
+        "completion": completion,
+        "completions": [completion.strip()],
+        "timings": [0],
+        "status_messages": ['Went well!'],
+        "status_codes": [200],
+        "completion_is_valid": [True],
+        "task_name": 'echo',
+        "ensemble_result": {}
+    })
+
+    # Send the final JSON as part of the stream
+    await response.write(f"\n\nJSON_RESPONSE_BEGIN:\n{json_chunk}".encode('utf-8'))
+
+    # Finalize the response
+    await response.write_eof()
+    return response

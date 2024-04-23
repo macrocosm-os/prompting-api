@@ -15,16 +15,21 @@ from prompting.utils.logging import log_event
 from prompting.utils.misc import async_log, serialize_exception_to_string
 from dataclasses import dataclass
 
+
 @async_log
 async def generate_reference(agent):
     loop = asyncio.get_running_loop()
-    result = await loop.run_in_executor(None, agent.task.generate_reference, agent.llm_pipeline)
+    result = await loop.run_in_executor(
+        None, agent.task.generate_reference, agent.llm_pipeline
+    )
     return result
+
 
 @async_log
 async def execute_dendrite_call(dendrite_call):
     responses = await dendrite_call
     return responses
+
 
 @dataclass
 class StreamResult:
@@ -82,20 +87,19 @@ async def handle_response(responses: Dict[int, Awaitable]) -> List[StreamResult]
         (uid, responses[uid]) for uid, _ in responses.items()
     ]  # Pair UIDs with their tasks
 
-    #Start tasks, preserving order and their associated UIDs
+    # Start tasks, preserving order and their associated UIDs
     tasks = [process_response(uid, resp) for uid, resp in tasks_with_uid]
 
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
     mapped_results = []
-    #Pair each result with its original uid
+    # Pair each result with its original uid
     for (uid, _), result in zip(tasks_with_uid, results):
-        
-        #If the result is a StreamPromptingSynapse, the response was successful and the stream result is added without exceptions
+        # If the result is a StreamPromptingSynapse, the response was successful and the stream result is added without exceptions
         if isinstance(result, StreamPromptingSynapse):
             mapped_results.append(StreamResult(synapse=result, uid=uid))
 
-        #If the result is an exception, the response was unsuccessful and the stream result is added with the exception and an empty synapse
+        # If the result is an exception, the response was unsuccessful and the stream result is added with the exception and an empty synapse
         elif isinstance(result, BaseException):
             failed_synapse = StreamPromptingSynapse(
                 roles=["user"], messages=["failure"], completion=""
@@ -104,7 +108,7 @@ async def handle_response(responses: Dict[int, Awaitable]) -> List[StreamResult]
                 StreamResult(synapse=failed_synapse, exception=result, uid=uid)
             )
 
-        #If the result is neither an error or a StreamSynapse, log the error and raise a ValueError
+        # If the result is neither an error or a StreamSynapse, log the error and raise a ValueError
         else:
             bt.logging.error(f"Unexpected result type for UID {uid}: {result}")
             raise ValueError(f"Unexpected result type for UID {uid}: {result}")

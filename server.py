@@ -34,8 +34,6 @@ EXPECTED_ACCESS_KEY="hey-michal" python app.py --neuron.model_id mock --wallet.n
 ```
 add --mock to test the echo stream
 """
-@api_key_middleware
-@json_parsing_middleware
 async def chat(request: web.Request) -> Response:
     """
     Chat endpoint for the validator.
@@ -43,7 +41,7 @@ async def chat(request: web.Request) -> Response:
     request_data = request['data']
     params = QueryValidatorParams.from_dict(request_data)    
     # TODO: SET STREAM AS DEFAULT
-    stream = request_data.get('stream', False)        
+    stream = request_data.get('stream', True)        
     
     # Access the validator from the application context
     validator: ValidatorAPI = request.app['validator']
@@ -52,11 +50,10 @@ async def chat(request: web.Request) -> Response:
     return response
 
 
-@api_key_middleware
-@json_parsing_middleware
 async def echo_stream(request, request_data):    
     request_data = request['data']
     return await utils.echo_stream(request_data)
+
 
 
 class ValidatorApplication(web.Application):
@@ -65,16 +62,17 @@ class ValidatorApplication(web.Application):
         
         self['validator'] = validator_instance if validator_instance else S1ValidatorAPI()
         
-        # Add middlewares to application
-        self.middlewares.append(api_key_middleware)
-        self.middlewares.append(json_parsing_middleware)
-        
+        # Add middlewares to application                
         self.add_routes([
             web.post('/chat/', chat),
             web.post('/echo/', echo_stream)
         ])
+        self.setup_middlewares()
         # TODO: Enable rewarding and other features
         
+    def setup_middlewares(self):
+        self.middlewares.append(json_parsing_middleware)
+        self.middlewares.append(api_key_middleware)
         
 def main(run_aio_app=True, test=False) -> None:
     loop = asyncio.get_event_loop()

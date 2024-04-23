@@ -1,14 +1,13 @@
 import json
 import utils
+import torch
 import traceback
 import bittensor as bt
-import asyncio
-from prompting.forward import handle_response
 from prompting.validator import Validator
 from prompting.utils.uids import get_random_uids
 from prompting.protocol import PromptingSynapse, StreamPromptingSynapse
 from prompting.dendrite import DendriteResponseEvent
-from base import QueryValidatorParams, ValidatorAPI
+from .base import QueryValidatorParams, ValidatorAPI
 from aiohttp.web_response import Response, StreamResponse
 from deprecated import deprecated
 
@@ -16,7 +15,7 @@ class S1ValidatorAPI(ValidatorAPI):
     def __init__(self):
         self.validator = Validator()    
     
-                    
+
     @deprecated(reason="This function is deprecated. Validators use stream synapse now, use get_stream_response instead.")
     async def get_response(self, params:QueryValidatorParams) -> Response:
         try:
@@ -37,7 +36,7 @@ class S1ValidatorAPI(ValidatorAPI):
 
             bt.logging.info(f"Creating DendriteResponseEvent:\n {responses}")
             # Encapsulate the responses in a response event (dataclass)
-            response_event = DendriteResponseEvent(responses, uids)
+            response_event = DendriteResponseEvent(responses, torch.LongTensor(uids), params.timeout)
 
             # convert dict to json
             response = response_event.__state_dict__()

@@ -2,7 +2,9 @@ import json
 import utils
 import torch
 import traceback
+import asyncio
 import bittensor as bt
+from typing import Awaitable
 from prompting.validator import Validator
 from prompting.utils.uids import get_random_uids
 from prompting.protocol import PromptingSynapse, StreamPromptingSynapse
@@ -55,11 +57,30 @@ class S1ValidatorAPI(ValidatorAPI):
             return Response(status=500, reason="Internal error")
         
         
+    async def process_response(self, response: StreamResponse, uid: int, async_generator: Awaitable):
+        """Process a single response asynchronously."""
+        try:
+            chunk = None  # Initialize chunk with a default value
+            async for chunk in async_generator:  # most important loop, as this is where we acquire the final synapse.
+                bt.logging.debug(f"\nchunk for uid {uid}: {chunk}")
+                
+                # TODO: SET PROPER IMPLEMENTATION TO RETURN CHUNK
+                if chunk is not None:
+                    json_data = json.dumps(chunk)
+                    await response.write(json_data.encode('utf-8'))
+                    
+        except Exception as e:
+            bt.logging.error(f'Encountered an error in {self.__class__.__name__}:get_stream_response:\n{traceback.format_exc()}')
+            response.set_status(500, reason="Internal error")
+            await response.write(json.dumps({'error': str(e)}).encode('utf-8'))
+        finally:
+            await response.write_eof()  # Ensure to close the response properly
+        
     async def get_stream_response(self, params:QueryValidatorParams) -> StreamResponse:
         response = StreamResponse(status=200, reason="OK")
         response.headers['Content-Type'] = 'application/json'
 
-        await response.prepare()  # Prepare and send the headers
+        await response.prepare(params.request)  # Prepare and send the headers
         
         try:
             # Guess the task name of current request
@@ -78,14 +99,11 @@ class S1ValidatorAPI(ValidatorAPI):
                 deserialize=False,
                 streaming=True,
             )
-
-            # Asynchronous iteration over streaming responses
-            async for stream_result in streams_responses:
-                if stream_result is not None:
-                    # Convert stream result to JSON and write to the response stream
-                    json_data = json.dumps(stream_result)
-                    await response.write(json_data.encode('utf-8'))
-
+            
+            tasks = [self.process_response(uid, res) for uid, res in dict(zip(uids, streams_responses))]                        
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # TODO: Continue implementation, business decision needs to be made on how to handle the results      
         except Exception as e:
             bt.logging.error(f'Encountered an error in {self.__class__.__name__}:get_stream_response:\n{traceback.format_exc()}')
             response.set_status(500, reason="Internal error")
@@ -94,12 +112,15 @@ class S1ValidatorAPI(ValidatorAPI):
             await response.write_eof()  # Ensure to close the response properly
 
         return response
-            
 
-    async def query_validator(self, params:QueryValidatorParams, stream: bool = True) -> Response:        
+
+    async def query_validator(self, params:QueryValidatorParams) -> Response:        
+        # TODO: SET STREAM AS DEFAULT
+        stream = params.request.get('stream', False)        
+        
         if stream:
             return await self.get_stream_response(params)
         else:
             # DEPRECATED
             return await self.get_response(params)
-        
+

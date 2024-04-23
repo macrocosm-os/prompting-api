@@ -37,16 +37,14 @@ add --mock to test the echo stream
 async def chat(request: web.Request) -> Response:
     """
     Chat endpoint for the validator.
-    """    
-    request_data = request['data']
-    params = QueryValidatorParams.from_dict(request_data)    
-    # TODO: SET STREAM AS DEFAULT
-    stream = request_data.get('stream', True)        
+    """        
+    params = QueryValidatorParams.from_request(request)    
+
     
     # Access the validator from the application context
     validator: ValidatorAPI = request.app['validator']
     
-    response = await validator.query_validator(params, stream=stream)
+    response = await validator.query_validator(params)
     return response
 
 

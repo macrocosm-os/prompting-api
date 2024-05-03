@@ -3,6 +3,7 @@ import utils
 import torch
 import traceback
 import asyncio
+import random
 import bittensor as bt
 from typing import Awaitable
 from prompting.validator import Validator
@@ -75,27 +76,15 @@ class S1ValidatorAPI(ValidatorAPI):
             return Response(status=500, reason="Internal error")
 
     async def process_response(
-        self, response: StreamResponse, uid: int, async_generator: Awaitable
+        self, response: StreamResponse, async_generator: Awaitable
     ):
         """Process a single response asynchronously."""
-        try:
-            chunk = None  # Initialize chunk with a default value
-            async for chunk in async_generator:  # most important loop, as this is where we acquire the final synapse.
-                bt.logging.debug(f"\nchunk for uid {uid}: {chunk}")
+        chunk = None  # Initialize chunk with a default value
+        async for chunk in async_generator:
+            if chunk is not None and hasattr(chunk, 'completion'):
+                # Directly write the string encoded as UTF-8 bytes
+                await response.write(chunk.completion.encode('utf-8'))
 
-                # TODO: SET PROPER IMPLEMENTATION TO RETURN CHUNK
-                if chunk is not None:
-                    json_data = json.dumps(chunk)
-                    await response.write(json_data.encode("utf-8"))
-
-        except Exception as e:
-            bt.logging.error(
-                f"Encountered an error in {self.__class__.__name__}:get_stream_response:\n{traceback.format_exc()}"
-            )
-            response.set_status(500, reason="Internal error")
-            await response.write(json.dumps({"error": str(e)}).encode("utf-8"))
-        finally:
-            await response.write_eof()  # Ensure to close the response properly
 
     async def get_stream_response(self, params: QueryValidatorParams) -> StreamResponse:
         response = StreamResponse(status=200, reason="OK")
@@ -114,7 +103,8 @@ class S1ValidatorAPI(ValidatorAPI):
             axons = [self.validator.metagraph.axons[uid] for uid in uids]
 
             # Make calls to the network with the prompt.
-            bt.logging.info(f"Calling dendrite")
+            bt.logging.info(f"Calling dendrite")                         
+            
             streams_responses = await self.validator.dendrite(
                 axons=axons,
                 synapse=StreamPromptingSynapse(
@@ -124,14 +114,9 @@ class S1ValidatorAPI(ValidatorAPI):
                 deserialize=False,
                 streaming=True,
             )
-
-            tasks = [
-                self.process_response(uid, res)
-                for uid, res in dict(zip(uids, streams_responses))
-            ]
-            results = await asyncio.gather(*tasks, return_exceptions=True)
-
-            # TODO: Continue implementation, business decision needs to be made on how to handle the results
+            
+            random_stream = random.choice(streams_responses)            
+            await self.process_response(response, random_stream)                            
         except Exception as e:
             bt.logging.error(
                 f"Encountered an error in {self.__class__.__name__}:get_stream_response:\n{traceback.format_exc()}"
@@ -145,7 +130,7 @@ class S1ValidatorAPI(ValidatorAPI):
 
     async def query_validator(self, params: QueryValidatorParams) -> Response:
         # TODO: SET STREAM AS DEFAULT
-        stream = params.request.get("stream", False)
+        stream = params.request.get("stream", True)
 
         if stream:
             return await self.get_stream_response(params)

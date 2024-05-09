@@ -2,21 +2,16 @@ import asyncio
 import utils
 import bittensor as bt
 from aiohttp import web
-from aiohttp.web_response import Response
 from validators import S1ValidatorAPI, QueryValidatorParams, ValidatorAPI
 from middlewares import api_key_middleware, json_parsing_middleware
 
 """
-# test
+# Test chat endpoint with curl
 ```
-curl -X POST http://0.0.0.0:10000/chat/ -H "api_key: hello" -d '{"k": 5, "timeout": 3, "roles": ["user"], "messages": ["hello world"]}'
+curl --no-buffer -X POST http://0.0.0.0:10000/chat/ -H "api_key: hey-michal" -d '{"k": 5, "timeout": 15, "roles": ["user"], "messages": ["on what exact date did the 21st century begin??"]}'
 
-curl -X POST http://0.0.0.0:10000/chat/ -H "api_key: hey-michal" -d '{"k": 5, "timeout": 3, "roles": ["user"], "messages": ["on what exact date did the 21st century begin?"]}'
-
-curl -X POST http://0.0.0.0:10000/chat/ -H "api_key: hey-michal" -d '{"k": 5, "timeout": 15, "roles": ["user"], "messages": ["who you really are?"]}'
-
-# stream
-curl --no-buffer -X POST http://129.146.127.82:10000/echo/ -H "api_key: hey-michal" -d '{"k": 3, "timeout": 0.2, "roles": ["user"], "messages": ["i need to tell you something important but first"]}'
+# echo stream test endpoint
+curl --no-buffer -X POST http://0.0.0.0:10000/echo/ -H "api_key: hey-michal" -d '{"k": 3, "timeout": 0.2, "roles": ["user"], "messages": ["i need to tell you something important but first"]}'
 ```
 
 TROUBLESHOOT
@@ -25,7 +20,15 @@ check if port is open
 sudo ufw allow 10000/tcp
 sudo ufw allow 10000/tcp
 ```
-# run
+
+---
+
+# Run Chattensor
+
+## With vanilla python:
+python server.py --neuron.model_id mock --wallet.name sn1 --wallet.hotkey v1 --netuid 1 --neuron.tasks math --neuron.task_p 1 --neuron.device cpu --subtensor.network local
+
+## With PM2:
 ```
 EXPECTED_ACCESS_KEY="hey-michal" pm2 start app.py --interpreter python3 --name app -- --neuron.model_id mock --wallet.name sn1 --wallet.hotkey v1 --netuid 1 --neuron.tasks math --neuron.task_p 1 --neuron.device cpu
 ```
@@ -38,7 +41,7 @@ add --mock to test the echo stream
 """
 
 
-async def chat(request: web.Request) -> Response:
+async def chat(request: web.Request) -> web.StreamResponse:
     """
     Chat endpoint for the validator.
     """
@@ -51,9 +54,8 @@ async def chat(request: web.Request) -> Response:
     return response
 
 
-async def echo_stream(request, request_data):
-    request_data = request["data"]
-    return await utils.echo_stream(request_data)
+async def echo_stream(request: web.Request) -> web.StreamResponse:    
+    return await utils.echo_stream(request)
 
 
 class ValidatorApplication(web.Application):

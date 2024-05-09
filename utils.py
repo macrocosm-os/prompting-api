@@ -1,8 +1,10 @@
 import re
-import bittensor as bt
 import time
 import json
+import asyncio
+import bittensor as bt
 from aiohttp import web
+from responses import TextStreamResponse
 from collections import Counter
 from prompting.rewards import DateRewardModel, FloatDiffModel
 
@@ -134,47 +136,45 @@ def guess_task_name(challenge: str):
     return "qa"
 
 
-async def echo_stream(request_data: dict):
-    k = request_data.get("k", 1)
-    exclude = request_data.get("exclude", [])
-    timeout = request_data.get("timeout", 0.2)
+async def echo_stream(request: web.Request) -> web.StreamResponse:
+    request_data = request["data"]
+    k = request_data.get("k", 1)        
     message = "\n\n".join(request_data["messages"])
 
     # Create a StreamResponse
     response = web.StreamResponse(
-        status=200, reason="OK", headers={"Content-Type": "text/plain"}
+        status=200, reason="OK", headers={"Content-Type": "application/json"}
     )
-    await response.prepare()
+    await response.prepare(request)
 
     completion = ""
+    chunks = []
+    chunks_timings = []
+    start_time = time.time()
     # Echo the message k times with a timeout between each chunk
     for _ in range(k):
         for word in message.split():
-            chunk = f"{word} "
+            chunk = f"{word} "            
             await response.write(chunk.encode("utf-8"))
             completion += chunk
-            time.sleep(timeout)
+            await asyncio.sleep(.3)
             bt.logging.info(f"Echoed: {chunk}")
-
+            
+            chunks.append(chunk)
+            chunks_timings.append(time.time() - start_time)
+            
     completion = completion.strip()
 
-    # Prepare final JSON chunk
-    json_chunk = json.dumps(
-        {
-            "uids": [0],
-            "completion": completion,
-            "completions": [completion.strip()],
-            "timings": [0],
-            "status_messages": ["Went well!"],
-            "status_codes": [200],
-            "completion_is_valid": [True],
-            "task_name": "echo",
-            "ensemble_result": {},
-        }
-    )
+    # Prepare final JSON chunk  
+    response_data = TextStreamResponse(
+        streamed_chunks=chunks, 
+        streamed_chunks_timings=chunks_timings,
+        completion=completion,
+        timing = time.time()- start_time
+    ).to_dict()      
 
     # Send the final JSON as part of the stream
-    await response.write(f"\n\nJSON_RESPONSE_BEGIN:\n{json_chunk}".encode("utf-8"))
+    await response.write(json.dumps(response_data).encode("utf-8"))
 
     # Finalize the response
     await response.write_eof()

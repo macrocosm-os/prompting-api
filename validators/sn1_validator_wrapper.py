@@ -2,7 +2,7 @@ import json
 import utils
 import torch
 import traceback
-import asyncio
+import time
 import random
 import bittensor as bt
 from typing import Awaitable
@@ -13,6 +13,16 @@ from prompting.dendrite import DendriteResponseEvent
 from .base import QueryValidatorParams, ValidatorAPI
 from aiohttp.web_response import Response, StreamResponse
 from deprecated import deprecated
+from dataclasses import dataclass
+from typing import List
+from responses import TextStreamResponse
+
+
+@dataclass
+class ProcessedStreamResponse:
+    streamed_chunks: List[str]
+    streamed_chunks_timings: List[float]
+    synapse: StreamPromptingSynapse
 
 
 class S1ValidatorAPI(ValidatorAPI):
@@ -77,13 +87,39 @@ class S1ValidatorAPI(ValidatorAPI):
 
     async def process_response(
         self, response: StreamResponse, async_generator: Awaitable
-    ):
+    ) -> ProcessedStreamResponse:
         """Process a single response asynchronously."""
-        chunk = None  # Initialize chunk with a default value
-        async for chunk in async_generator:
-            if chunk is not None and hasattr(chunk, 'completion'):
-                # Directly write the string encoded as UTF-8 bytes
-                await response.write(chunk.completion.encode('utf-8'))
+        # Initialize chunk with a default value
+        chunk = None 
+        # Initialize chunk array to accumulate streamed chunks
+        chunks = []
+        chunks_timings = []
+        
+        start_time = time.time()
+        last_sent_index = 0
+        async for chunk in async_generator:                                            
+            if isinstance(chunk, list):
+                # Chunks are currently returned in string arrays, so we need to concatenate them                
+                concatenated_chunks = "".join(chunk)        
+                new_data = concatenated_chunks[last_sent_index:]
+                
+                if new_data:
+                    await response.write(new_data.encode('utf-8'))
+                    bt.logging.info(f"Received new chunk from miner: {chunk}")                
+                    last_sent_index += len(new_data)
+                    chunks.extend(chunk)
+                    chunks_timings.append(time.time() - start_time)                                                
+                                
+        if chunk is not None and isinstance(chunk, StreamPromptingSynapse):
+            # Assuming the last chunk holds the last value yielded which should be a synapse with the completion filled            
+            return ProcessedStreamResponse(
+                synapse=chunk,
+                streamed_chunks=chunks,
+                streamed_chunks_timings=chunks_timings
+            )            
+        else:
+            raise ValueError("The last chunkis not a StreamPrompting synapse")
+
 
 
     async def get_stream_response(self, params: QueryValidatorParams) -> StreamResponse:
@@ -94,7 +130,7 @@ class S1ValidatorAPI(ValidatorAPI):
 
         try:
             # Guess the task name of current request
-            task_name = utils.guess_task_name(params.messages[-1])
+            # task_name = utils.guess_task_name(params.messages[-1])
 
             # Get the list of uids to query for this step.
             uids = get_random_uids(
@@ -103,7 +139,8 @@ class S1ValidatorAPI(ValidatorAPI):
             axons = [self.validator.metagraph.axons[uid] for uid in uids]
 
             # Make calls to the network with the prompt.
-            bt.logging.info(f"Calling dendrite")                         
+            bt.logging.info(f"Calling dendrite")
+            start_time = time.time()
             
             streams_responses = await self.validator.dendrite(
                 axons=axons,
@@ -115,8 +152,22 @@ class S1ValidatorAPI(ValidatorAPI):
                 streaming=True,
             )
             
-            random_stream = random.choice(streams_responses)            
-            await self.process_response(response, random_stream)                            
+            uid_stream_dict = dict(zip(uids, streams_responses))            
+            
+            random_uid, random_stream = random.choice(list(uid_stream_dict.items()))                                    
+            processed_response = await self.process_response(response, random_stream)
+            
+            # Prepare final JSON chunk
+            response_data = json.dumps(TextStreamResponse(
+                streamed_chunks=processed_response.streamed_chunks,
+                streamed_chunks_timings=processed_response.streamed_chunks_timings,
+                uid = random_uid,
+                completion=processed_response.synapse.completion,
+                timing = time.time()- start_time
+            ).to_dict())
+            
+            # Send the final JSON as part of the stream
+            await response.write(json.dumps(response_data).encode("utf-8"))
         except Exception as e:
             bt.logging.error(
                 f"Encountered an error in {self.__class__.__name__}:get_stream_response:\n{traceback.format_exc()}"
@@ -128,12 +179,5 @@ class S1ValidatorAPI(ValidatorAPI):
 
         return response
 
-    async def query_validator(self, params: QueryValidatorParams) -> Response:
-        # TODO: SET STREAM AS DEFAULT
-        stream = params.request.get("stream", True)
-
-        if stream:
-            return await self.get_stream_response(params)
-        else:
-            # DEPRECATED
-            return await self.get_response(params)
+    async def query_validator(self, params: QueryValidatorParams) -> Response:                
+        return await self.get_stream_response(params)

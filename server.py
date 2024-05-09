@@ -8,10 +8,19 @@ from middlewares import api_key_middleware, json_parsing_middleware
 """
 # Test chat endpoint with curl
 ```
+//Local:
 curl --no-buffer -X POST http://0.0.0.0:10000/chat/ -H "api_key: hey-michal" -d '{"k": 5, "timeout": 15, "roles": ["user"], "messages": ["on what exact date did the 21st century begin??"]}'
 
+//Global:
+curl --no-buffer -X POST http://129.146.127.82:10000/chat/ -H "api_key: hey-michal" -d '{"k": 5, "timeout": 15, "roles": ["user"], "messages": ["on what exact date did the 21st century begin??"]}'
+curl --no-buffer -X POST http://129.146.127.82:10000/chat/ -H "api_key: hey-michal" -d '{"k": 5, "timeout": 15, "roles": ["user"], "messages": ["What is the meaning of life??"]}'
+
 # echo stream test endpoint
+//Local
 curl --no-buffer -X POST http://0.0.0.0:10000/echo/ -H "api_key: hey-michal" -d '{"k": 3, "timeout": 0.2, "roles": ["user"], "messages": ["i need to tell you something important but first"]}'
+
+//Global
+curl --no-buffer -X POST http://129.146.127.82:10000/echo/ -H "api_key: hey-michal" -d '{"k": 3, "timeout": 0.2, "roles": ["user"], "messages": ["i need to tell you something important but first"]}'
 ```
 
 TROUBLESHOOT

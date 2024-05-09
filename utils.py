@@ -138,7 +138,7 @@ def guess_task_name(challenge: str):
 
 async def echo_stream(request: web.Request) -> web.StreamResponse:
     request_data = request["data"]
-    k = request_data.get("k", 1)        
+    k = request_data.get("k", 1)
     message = "\n\n".join(request_data["messages"])
 
     # Create a StreamResponse
@@ -154,24 +154,24 @@ async def echo_stream(request: web.Request) -> web.StreamResponse:
     # Echo the message k times with a timeout between each chunk
     for _ in range(k):
         for word in message.split():
-            chunk = f"{word} "            
+            chunk = f"{word} "
             await response.write(chunk.encode("utf-8"))
             completion += chunk
-            await asyncio.sleep(.3)
+            await asyncio.sleep(0.3)
             bt.logging.info(f"Echoed: {chunk}")
-            
+
             chunks.append(chunk)
             chunks_timings.append(time.time() - start_time)
-            
+
     completion = completion.strip()
 
-    # Prepare final JSON chunk  
+    # Prepare final JSON chunk
     response_data = TextStreamResponse(
-        streamed_chunks=chunks, 
+        streamed_chunks=chunks,
         streamed_chunks_timings=chunks_timings,
         completion=completion,
-        timing = time.time()- start_time
-    ).to_dict()      
+        timing=time.time() - start_time,
+    ).to_dict()
 
     # Send the final JSON as part of the stream
     await response.write(json.dumps(response_data).encode("utf-8"))

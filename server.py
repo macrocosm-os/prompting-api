@@ -54,7 +54,7 @@ async def chat(request: web.Request) -> web.StreamResponse:
     return response
 
 
-async def echo_stream(request: web.Request) -> web.StreamResponse:    
+async def echo_stream(request: web.Request) -> web.StreamResponse:
     return await utils.echo_stream(request)
 
 

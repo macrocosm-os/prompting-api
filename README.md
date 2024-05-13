@@ -7,7 +7,7 @@ To run, you will need a bittensor wallet which is registered to the relevant sub
 
 
 ## Install
-Create a new python environment and install the dependencies with the command
+Create a new python environment and install the dependencies with the command. **Note**: This project uses python >=3.10.
 
 ```bash
 pip install -r requirements.txt

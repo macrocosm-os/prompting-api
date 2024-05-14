@@ -94,7 +94,6 @@ To test the API locally, you can use the following curl command:
 
 ```bash
 curl --no-buffer -X POST http://0.0.0.0:10000/chat/ -H "api_key: <ACCESS_KEY>" -d '{"k": 5, "timeout": 15, "roles": ["user"], "messages": ["What is today's date?"]}'
-"""
 ```
 > Note: Use the `--no-buffer` flag to ensure that the response is streamed back to the client.
 

@@ -87,16 +87,33 @@ Responses from the `/chat` endpoint are streamed back to the client as they are 
 - `streamed_chunks_timings: List[float]`: The time taken to receive each streamed response
 - `synapse: StreamPromptingSynapse`: The synapse used to query the network. This contains full context and metadata about the query.
 
+The `StreamPromptingSynapse` object contains the following fields:
+- `uid: int`: The unique identifier of the synapse
+- `completion: str`: The final response from the network
+- `timing: float`: The total time taken to receive the final response
+
+> Note: The API is subject to change as the project evolves.
+
 
 ## Testing
 
 To test the API locally, you can use the following curl command:
 
 ```bash
-curl --no-buffer -X POST http://0.0.0.0:10000/chat/ -H "api_key: <ACCESS_KEY>" -d '{"k": 5, "timeout": 15, "roles": ["user"], "messages": ["What is today's date?"]}'
+curl --no-buffer -X POST http://0.0.0.0:10000/chat/ -H "api_key: <ACCESS_KEY>" -d '{"k": 5, "timeout": 15, "roles": ["user"], "messages": ["Tell me a happy story about a rabbit and a turtle that meet on a budget cruise around Northern Ireland"]}'
 ```
 > Note: Use the `--no-buffer` flag to ensure that the response is streamed back to the client.
 
+The above example prompt yields the following.
+
+Streamed response:
+```
+Once upon a time, a rabbit named Rosie and a turtle named Tim embarked on a budget cruise around Northern Ireland. Despite their differences in speed, Rosie's energetic hopping and Tim's slow but steady pace, they quickly became friends during the voyage. \n\nAs they explored the stunning landscapes and quaint villages along the coast, Rosie and Tim discovered a shared love for adventure and new experiences. They enjoyed sampling local cuisine, attending traditional music sessions, and participating in fun onboard activities.\n\nOne memorable evening, under the shimmering Northern Lights, Rosie and Tim danced together on the deck, celebrating their unlikely friendship and the beauty of the world around them. Their bond transcended their differences, proving that true companionship knows no boundaries.\n\nAt the end of the cruise, as they bid farewell to their fellow travelers and the enchanting sights of Northern Ireland, Rosie and Tim knew that their special connection would last a lifetime. And so, with hearts full of joy and memories to cherish, the rabbit and the turtle set off on new adventures, forever grateful for the magical journey they shared.
+```
+Final JSON:
+```json
+{\"streamed_chunks\": [\"Once upon a time, a rabbit named Rosie and a turtle named Tim embarked on a budget cruise around Northern Ireland. Despite their differences in speed, Rosie's energetic hopping and Tim's slow but steady pace, they quickly became friends during the voyage. \\\\n\\\\nAs they explored the stunning landscapes and quaint villages along the coast, Rosie and Tim discovered a shared love for adventure and new experiences. They enjoyed sampling local cuisine, attending traditional music sessions, and participating in fun onboard activities.\\\\n\\\\nOne memorable evening, under the shimmering Northern Lights, Rosie and Tim danced together on the deck, celebrating their unlikely friendship and the beauty of the world around them. Their bond transcended their differences, proving that true companionship knows no boundaries.\\\\n\\\\nAt the end of the cruise, as they bid farewell to their fellow travelers and the enchanting sights of Northern Ireland, Rosie and Tim knew that their special connection would last a lifetime. And so, with hearts full of joy and memories to cherish, the rabbit and the turtle set off on new adventures, forever grateful for the magical journey they shared.\"], \"streamed_chunks_timings\": [4.6420252323150635], \"uid\": 559, \"completion\": \"Once upon a time, a rabbit named Rosie and a turtle named Tim embarked on a budget cruise around Northern Ireland. Despite their differences in speed, Rosie's energetic hopping and Tim's slow but steady pace, they quickly became friends during the voyage. \\\\n\\\\nAs they explored the stunning landscapes and quaint villages along the coast, Rosie and Tim discovered a shared love for adventure and new experiences. They enjoyed sampling local cuisine, attending traditional music sessions, and participating in fun onboard activities.\\\\n\\\\nOne memorable evening, under the shimmering Northern Lights, Rosie and Tim danced together on the deck, celebrating their unlikely friendship and the beauty of the world around them. Their bond transcended their differences, proving that true companionship knows no boundaries.\\\\n\\\\nAt the end of the cruise, as they bid farewell to their fellow travelers and the enchanting sights of Northern Ireland, Rosie and Tim knew that their special connection would last a lifetime. And so, with hearts full of joy and memories to cherish, the rabbit and the turtle set off on new adventures, forever grateful for the magical journey they shared.\", \"timing\": 4.720629930496216}"
+```
 After verifying that the server is responding to requests locally, you can test the server on a remote machine.
 
 ### Troubleshooting

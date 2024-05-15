@@ -13,6 +13,7 @@ class QueryValidatorParams:
     timeout: int
     prefer: str
     request: Request
+    sampling_mode: str
 
     @staticmethod
     def from_request(request: Request):
@@ -26,6 +27,7 @@ class QueryValidatorParams:
             timeout=data.get("timeout", 10),
             prefer=data.get("prefer", "longest"),
             request=request,
+            sampling_mode=data.get("sampling_mode", "random"),
         )
 
 

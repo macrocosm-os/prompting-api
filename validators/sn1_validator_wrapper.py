@@ -118,7 +118,7 @@ class S1ValidatorAPI(ValidatorAPI):
                 streamed_chunks_timings=chunks_timings,
             )
         else:
-            raise ValueError("The last chunkis not a StreamPrompting synapse")
+            raise ValueError("The last chunks not a StreamPrompting synapse")
 
     async def get_stream_response(self, params: QueryValidatorParams) -> StreamResponse:
         response = StreamResponse(status=200, reason="OK")

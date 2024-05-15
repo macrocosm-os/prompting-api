@@ -1,12 +1,12 @@
 
 <picture>
     <source srcset="./assets/macrocosmos-white.png"  media="(prefers-color-scheme: dark)">
-    <img src="macrocosmos-white.png">
+    <img src="assets/macrocosmos-white.png">
 </picture>
 
 <picture>
     <source srcset="./assets/macrocosmos-black.png"  media="(prefers-color-scheme: light)">
-    <img src="macrocosmos-black.png">
+    <img src="assets/macrocosmos-black.png">
 </picture>
 
 
@@ -75,28 +75,36 @@ EXPECTED_ACCESS_KEY=<ACCESS_KEY> pm2 start server.py --interpreter python3 --nam
 ## API Usage
 At present, the API provides two endpoints: `/chat` (live) and `/echo` (test). 
 
-`/chat` is used to chat with the network and receive a response. The endpoint requires a JSON payload with the following fields:
-- `k: int`: The number of responses to return
-- `timeout: float`: The time in seconds to wait for a response
-- `roles: List[str]`: The roles of the agents to query
-- `messages: List[str]`: The messages to send to the network
-- `prefer: str`: The preferred response to use as the default view. Should be one of `{'longest', 'shortest'}`
+`/chat` is used to chat with the network and receive a response. It requires a JSON payload structured as per the QueryValidatorParams class.
+The request payload requires the following parameters encapsulated within the [`QueryValidatorParams`](./validators/base.py) data class:
+- `k_miners: int`: The number of miners from which to request responses.
+- `exclude: List[str]`: A list of roles or agents to exclude from querying.
+- `roles: List[str]`: The roles of the agents to query.
+- `messages: List[str]`: The messages to be sent to the network.
+- `timeout: int`: The time in seconds to wait for a response.
+- `prefer: str`: The preferred response format, can be either `'longest'` or `'shortest'`.
+- `request: Request`: The original request object encapsulating all request data.
+- `sampling_mode: str`: The mode of sampling to use, defaults to `"random"`. Can be either `"random"` or `"top_incentive"`
 
-Responses from the `/chat` endpoint are streamed back to the client as they are received from the network. Upon completion, the server will return a JSON response with the following fields:
-- `streamed_chunks: List[str]`: The streamed responses from the network
-- `streamed_chunks_timings: List[float]`: The time taken to receive each streamed response
-- `synapse: StreamPromptingSynapse`: The synapse used to query the network. This contains full context and metadata about the query.
+Responses from the `/chat` endpoint are handled by two classes: `StreamChunk` and `StreamError`, with their attributes defined as follows:
+- `StreamChunk`:
+  - `delta: str`: The new chunk of response received.
+  - `finish_reason: Optional[str]`: The reason for the response completion, if applicable Can be `None`, `finished` or `error` (check StreamError below).
+  - `accumulated_chunks: List[str]`: All chunks of responses accumulated thus far.
+  - `accumulated_chunks_timings: List[float]`: Timing for each chunk received.
+  - `timestamp: str`: The timestamp at which the chunk was processed.
+  - `sequence_number: int`: A sequential identifier for the response part.
+  - `selected_uid: int`: The identifier for the selected response source.
 
-The `StreamPromptingSynapse` object contains the following fields:
-- `uid: int`: The unique identifier of the synapse
-- `completion: str`: The final response from the network
-- `timing: float`: The total time taken to receive the final response
+- `StreamError`:
+  - `error: str`: Description of the error occurred.
+  - `timestamp: str`: The timestamp of the error.
+  - `sequence_number: int`: A sequential identifier for the error.
+  - `finish_reason: str`: Always set to `'error'` to indicate an error completion.
 
 > Note: The API is subject to change as the project evolves.
 
-
 ## Testing
-
 To test the API locally, you can use the following curl command:
 
 ```bash

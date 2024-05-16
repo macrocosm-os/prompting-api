@@ -1,12 +1,10 @@
 import re
-import time
-import json
 import asyncio
 import bittensor as bt
 from aiohttp import web
-from responses import TextStreamResponse
 from collections import Counter
 from prompting.rewards import DateRewardModel, FloatDiffModel
+from validators.streamer import AsyncResponseDataStreamer
 
 UNSUCCESSFUL_RESPONSE_PATTERNS = [
     "I'm sorry",
@@ -136,46 +134,27 @@ def guess_task_name(challenge: str):
     return "qa"
 
 
+# Simulate the stream synapse for the echo endpoint
+class EchoAsyncIterator:
+    def __init__(self, message: str, k: int, delay: float):
+        self.message = message
+        self.k = k
+        self.delay = delay
+
+    async def __aiter__(self):
+        for _ in range(self.k):
+            for word in self.message.split():
+                yield [word]
+                await asyncio.sleep(self.delay)
+
+
 async def echo_stream(request: web.Request) -> web.StreamResponse:
     request_data = request["data"]
     k = request_data.get("k", 1)
     message = "\n\n".join(request_data["messages"])
 
-    # Create a StreamResponse
-    response = web.StreamResponse(
-        status=200, reason="OK", headers={"Content-Type": "application/json"}
-    )
-    await response.prepare(request)
 
-    completion = ""
-    chunks = []
-    chunks_timings = []
-    start_time = time.time()
-    # Echo the message k times with a timeout between each chunk
-    for _ in range(k):
-        for word in message.split():
-            chunk = f"{word} "
-            await response.write(chunk.encode("utf-8"))
-            completion += chunk
-            await asyncio.sleep(0.3)
-            bt.logging.info(f"Echoed: {chunk}")
+    echo_iterator = EchoAsyncIterator(message, k, delay=0.3)
+    streamer = AsyncResponseDataStreamer(echo_iterator, selected_uid=0, delay=0.3)
 
-            chunks.append(chunk)
-            chunks_timings.append(time.time() - start_time)
-
-    completion = completion.strip()
-
-    # Prepare final JSON chunk
-    response_data = TextStreamResponse(
-        streamed_chunks=chunks,
-        streamed_chunks_timings=chunks_timings,
-        completion=completion,
-        timing=time.time() - start_time,
-    ).to_dict()
-
-    # Send the final JSON as part of the stream
-    await response.write(json.dumps(response_data).encode("utf-8"))
-
-    # Finalize the response
-    await response.write_eof()
-    return response
+    return await streamer.stream(request)

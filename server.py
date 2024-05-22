@@ -14,9 +14,7 @@ from validators import QueryValidatorParams, S1ValidatorAPI, ValidatorAPI
     tags=["Prompting API"],
     summary="Chat",
     description="Chat endpoint."
-    description="Chat endpoint."
 )
-@request_schema(QueryChatSchema)
 @request_schema(QueryChatSchema)
 @response_schema(StreamChunkSchema, 200)
 @response_schema(StreamErrorSchema, 400)
@@ -35,9 +33,7 @@ async def chat(request: web.Request) -> web.StreamResponse:
     tags=["Prompting API"],
     summary="Echo test",
     description="Echo endpoint for testing purposes."
-    description="Echo endpoint for testing purposes."
 )
-@request_schema(QueryChatSchema)
 @request_schema(QueryChatSchema)
 @response_schema(StreamChunkSchema, 200)
 @response_schema(StreamErrorSchema, 400)

@@ -12,7 +12,7 @@ from aiohttp_apispec import (
 
 from validators import S1ValidatorAPI, QueryValidatorParams, ValidatorAPI
 from common.middlewares import api_key_middleware, json_parsing_middleware
-from common.schemas import QueryValidatorParamsSchema, StreamChunkSchema, StreamErrorSchema
+from common.schemas import QueryChatSchema, StreamChunkSchema, StreamErrorSchema
 
 
 @docs(
@@ -20,7 +20,7 @@ from common.schemas import QueryValidatorParamsSchema, StreamChunkSchema, Stream
     summary="Chat",
     description="Chat endpoint.",
 )
-@request_schema(QueryValidatorParamsSchema)
+@request_schema(QueryChatSchema)
 @response_schema(StreamChunkSchema, 200)
 @response_schema(StreamErrorSchema, 400)
 async def chat(request: web.Request) -> web.StreamResponse:
@@ -39,7 +39,7 @@ async def chat(request: web.Request) -> web.StreamResponse:
     summary="Echo test",
     description="Echo endpoint for testing purposes.",
 )
-@request_schema(QueryValidatorParamsSchema)
+@request_schema(QueryChatSchema)
 @response_schema(StreamChunkSchema, 200)
 @response_schema(StreamErrorSchema, 400)
 async def echo_stream(request: web.Request) -> web.StreamResponse:

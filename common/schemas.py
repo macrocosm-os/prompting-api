@@ -1,7 +1,7 @@
 from marshmallow import Schema, fields
 
 
-class QueryValidatorParamsSchema(Schema):
+class QueryChatSchema(Schema):
     k = fields.Int(description="The number of miners from which to request responses.")
     exclude = fields.List(fields.Str(), description="A list of roles or agents to exclude from querying.")
     roles = fields.List(fields.Str(), required=True, description="The roles of the agents to query.")

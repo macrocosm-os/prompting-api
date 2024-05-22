@@ -1,4 +1,4 @@
-git+https://github.com/macrocosm-os/prompting.git
+git+https://github.com/opentensor/prompting.git@features/move-validator-into-prompting
 aiohttp
 deprecated
 aiohttp_apispec>=2.2.3

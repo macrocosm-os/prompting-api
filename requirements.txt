@@ -1,3 +1,4 @@
 git+https://github.com/opentensor/prompting.git@features/move-validator-into-prompting
 aiohttp
 deprecated
+aiohttp_apispec>=2.3.3

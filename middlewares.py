@@ -8,6 +8,10 @@ EXPECTED_ACCESS_KEY = os.environ.get("EXPECTED_ACCESS_KEY")
 
 @middleware
 async def api_key_middleware(request: Request, handler):
+    if request.path.startswith("/docs") or request.path.startswith("/static/swagger"):
+        # Skip checks when accessing OpenAPI documentation.
+        return await handler(request)
+
     # Logging the request
     bt.logging.info(f"Handling {request.method} request to {request.path}")
 
@@ -23,6 +27,10 @@ async def api_key_middleware(request: Request, handler):
 
 @middleware
 async def json_parsing_middleware(request: Request, handler):
+    if request.path.startswith("/docs") or request.path.startswith("/static/swagger"):
+        # Skip checks when accessing OpenAPI documentation.
+        return await handler(request)
+
     try:
         # Parsing JSON data from the request
         request["data"] = await request.json()

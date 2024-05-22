@@ -124,10 +124,9 @@ Final JSON:
 ```
 After verifying that the server is responding to requests locally, you can test the server on a remote machine.
 
-## Accessing OpenAPI Documentation
+## OpenAPI
 To access OpenAPI documentation, go to:
 [http://localhost:10000/docs](http://localhost:10000/docs)
-
 
 ### Troubleshooting
 

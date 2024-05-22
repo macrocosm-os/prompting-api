@@ -1,5 +1,5 @@
 import asyncio
-import utils
+import common.utils as utils
 import bittensor as bt
 from aiohttp import web
 from aiohttp_apispec import (
@@ -9,16 +9,16 @@ from aiohttp_apispec import (
     request_schema,
     response_schema,
 )
-from validators import S1ValidatorAPI, QueryValidatorParams, ValidatorAPI
-from middlewares import api_key_middleware, json_parsing_middleware
 
-from schemas import QueryValidatorParamsSchema, StreamChunkSchema, StreamErrorSchema
+from validators import S1ValidatorAPI, QueryValidatorParams, ValidatorAPI
+from common.middlewares import api_key_middleware, json_parsing_middleware
+from common.schemas import QueryValidatorParamsSchema, StreamChunkSchema, StreamErrorSchema
 
 
 @docs(
     tags=["Prompting API"],
-    summary="Chat with the network",
-    description="Chat endpoint for the validator.",
+    summary="Chat",
+    description="Chat endpoint.",
 )
 @request_schema(QueryValidatorParamsSchema)
 @response_schema(StreamChunkSchema, 200)

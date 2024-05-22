@@ -1,5 +1,4 @@
 import asyncio
-import common.utils as utils
 import bittensor as bt
 from aiohttp import web
 from aiohttp_apispec import (
@@ -11,6 +10,7 @@ from aiohttp_apispec import (
 )
 
 from validators import S1ValidatorAPI, QueryValidatorParams, ValidatorAPI
+from common import utils
 from common.middlewares import api_key_middleware, json_parsing_middleware
 from common.schemas import QueryChatSchema, StreamChunkSchema, StreamErrorSchema
 
@@ -18,7 +18,7 @@ from common.schemas import QueryChatSchema, StreamChunkSchema, StreamErrorSchema
 @docs(
     tags=["Prompting API"],
     summary="Chat",
-    description="Chat endpoint.",
+    description="Chat endpoint."
 )
 @request_schema(QueryChatSchema)
 @response_schema(StreamChunkSchema, 200)
@@ -37,7 +37,7 @@ async def chat(request: web.Request) -> web.StreamResponse:
 @docs(
     tags=["Prompting API"],
     summary="Echo test",
-    description="Echo endpoint for testing purposes.",
+    description="Echo endpoint for testing purposes."
 )
 @request_schema(QueryChatSchema)
 @response_schema(StreamChunkSchema, 200)

@@ -36,7 +36,7 @@ class S1ValidatorAPI(ValidatorAPI):
         axons = [self.validator.metagraph.axons[uid] for uid in uids]
 
         # Make calls to the network with the prompt.
-        bt.logging.info(f"Calling dendrite")
+        bt.logging.info(f"Sampling dendrite by {params.sampling_mode} with roles {params.roles} and messages {params.messages}")
 
         streams_responses = await self.validator.dendrite(
             axons=axons,

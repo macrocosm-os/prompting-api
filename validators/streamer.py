@@ -63,7 +63,11 @@ class AsyncResponseDataStreamer:
                     # Writes the new response state to the response                                    
                     await response.write(new_response_state.encode('utf-8'))
                                 
-            if chunk is not None and isinstance(chunk, StreamPromptingSynapse):                                                            
+            if chunk is not None and isinstance(chunk, StreamPromptingSynapse):
+                if len(self.accumulated_chunks) == 0:                    
+                    self.accumulated_chunks.append(chunk.completion)                    
+                    self.accumulated_chunks_timings.append(time.time() - start_time)
+                
                 self.finish_reason = "completed"
                 self.sequence_number += 1
                 # Assuming the last chunk holds the last value yielded which should be a synapse with the completion filled

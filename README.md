@@ -77,7 +77,7 @@ At present, the API provides two endpoints: `/chat` (live) and `/echo` (test).
 
 `/chat` is used to chat with the network and receive a response. It requires a JSON payload structured as per the QueryValidatorParams class.
 The request payload requires the following parameters encapsulated within the [`QueryValidatorParams`](./validators/base.py) data class:
-- `k_miners: int`: The number of miners from which to request responses.
+- `k: int`: The number of miners from which to request responses.
 - `exclude: List[str]`: A list of roles or agents to exclude from querying.
 - `roles: List[str]`: The roles of the agents to query.
 - `messages: List[str]`: The messages to be sent to the network.
@@ -123,6 +123,10 @@ Final JSON:
 {\"streamed_chunks\": [\"Once upon a time, a rabbit named Rosie and a turtle named Tim embarked on a budget cruise around Northern Ireland. Despite their differences in speed, Rosie's energetic hopping and Tim's slow but steady pace, they quickly became friends during the voyage. \\\\n\\\\nAs they explored the stunning landscapes and quaint villages along the coast, Rosie and Tim discovered a shared love for adventure and new experiences. They enjoyed sampling local cuisine, attending traditional music sessions, and participating in fun onboard activities.\\\\n\\\\nOne memorable evening, under the shimmering Northern Lights, Rosie and Tim danced together on the deck, celebrating their unlikely friendship and the beauty of the world around them. Their bond transcended their differences, proving that true companionship knows no boundaries.\\\\n\\\\nAt the end of the cruise, as they bid farewell to their fellow travelers and the enchanting sights of Northern Ireland, Rosie and Tim knew that their special connection would last a lifetime. And so, with hearts full of joy and memories to cherish, the rabbit and the turtle set off on new adventures, forever grateful for the magical journey they shared.\"], \"streamed_chunks_timings\": [4.6420252323150635], \"uid\": 559, \"completion\": \"Once upon a time, a rabbit named Rosie and a turtle named Tim embarked on a budget cruise around Northern Ireland. Despite their differences in speed, Rosie's energetic hopping and Tim's slow but steady pace, they quickly became friends during the voyage. \\\\n\\\\nAs they explored the stunning landscapes and quaint villages along the coast, Rosie and Tim discovered a shared love for adventure and new experiences. They enjoyed sampling local cuisine, attending traditional music sessions, and participating in fun onboard activities.\\\\n\\\\nOne memorable evening, under the shimmering Northern Lights, Rosie and Tim danced together on the deck, celebrating their unlikely friendship and the beauty of the world around them. Their bond transcended their differences, proving that true companionship knows no boundaries.\\\\n\\\\nAt the end of the cruise, as they bid farewell to their fellow travelers and the enchanting sights of Northern Ireland, Rosie and Tim knew that their special connection would last a lifetime. And so, with hearts full of joy and memories to cherish, the rabbit and the turtle set off on new adventures, forever grateful for the magical journey they shared.\", \"timing\": 4.720629930496216}"
 ```
 After verifying that the server is responding to requests locally, you can test the server on a remote machine.
+
+## OpenAPI
+To access OpenAPI specification, go to:
+[http://localhost:10000/docs](http://localhost:10000/docs)
 
 ### Troubleshooting
 

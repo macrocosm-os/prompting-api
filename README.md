@@ -108,7 +108,7 @@ Responses from the `/chat` endpoint are handled by two classes: `StreamChunk` an
 To test the API locally, you can use the following curl command:
 
 ```bash
-curl --no-buffer -X POST http://0.0.0.0:10000/chat/ -H "api_key: <ACCESS_KEY>" -d '{"k": 5, "timeout": 15, "roles": ["user"], "messages": ["Tell me a happy story about a rabbit and a turtle that meet on a budget cruise around Northern Ireland"]}'
+curl --no-buffer -X POST http://0.0.0.0:10000/chat/ -H "api_key: <ACCESS_KEY>" -H "Content-Type: application/json" -d '{"k": 5, "timeout": 15, "roles": ["user"], "messages": ["Tell me a happy story about a rabbit and a turtle that meet on a budget cruise around Northern Ireland"]}'
 ```
 > Note: Use the `--no-buffer` flag to ensure that the response is streamed back to the client.
 
@@ -150,4 +150,3 @@ You can find out more about the project by visiting the [Macrocosmos website](ht
 [![X](https://img.shields.io/badge/X-%23000000.svg?style=for-the-badge&logo=X&logoColor=white)](https://twitter.com/MacrocosmosAI)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?logo=linkedin&logoColor=white)](www.linkedin.com/in/MacrocosmosAI)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
-

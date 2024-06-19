@@ -1,3 +1,4 @@
+import asyncio
 import random
 import bittensor as bt
 from prompting.validator import Validator
@@ -7,7 +8,7 @@ from .base import QueryValidatorParams, ValidatorAPI
 from aiohttp.web_response import Response, StreamResponse
 from .streamer import AsyncResponseDataStreamer
 from .validator_utils import get_top_incentive_uids
-
+from .stream_manager import StreamManager
 
 class S1ValidatorAPI(ValidatorAPI):
     def __init__(self):
@@ -47,13 +48,18 @@ class S1ValidatorAPI(ValidatorAPI):
             deserialize=False,
             streaming=True,
         )
-        uid_stream_dict = dict(zip(uids, streams_responses))
-        random_uid, random_stream = random.choice(list(uid_stream_dict.items()))                        
+        # uid_stream_dict = dict(zip(uids, streams_responses))
+        # random_uid, random_stream = random.choice(list(uid_stream_dict.items()))                        
         
         # Creates a streamer from the selected stream
-        streamer = AsyncResponseDataStreamer(async_iterator=random_stream, selected_uid=random_uid)        
-        response = await streamer.stream(params.request)                        
-        return response
+        stream_manager = StreamManager()
+        await stream_manager.process_streams(params.request, streams_responses, uids)
+        
+        # response = await streamer.stream(params.request)   
+        # return response
+        
+        return None
+
 
     async def query_validator(self, params: QueryValidatorParams) -> Response:
         return await self.get_stream_response(params)

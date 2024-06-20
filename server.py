@@ -2,7 +2,13 @@ import asyncio
 
 import bittensor as bt
 from aiohttp import web
-from aiohttp_apispec import docs, request_schema, response_schema, setup_aiohttp_apispec, validation_middleware
+from aiohttp_apispec import (
+    docs,
+    request_schema,
+    response_schema,
+    setup_aiohttp_apispec,
+    validation_middleware,
+)
 
 from common import utils
 from common.middlewares import api_key_middleware, json_parsing_middleware
@@ -10,11 +16,7 @@ from common.schemas import QueryChatSchema, StreamChunkSchema, StreamErrorSchema
 from validators import QueryValidatorParams, S1ValidatorAPI, ValidatorAPI
 
 
-@docs(
-    tags=["Prompting API"],
-    summary="Chat",
-    description="Chat endpoint."
-)
+@docs(tags=["Prompting API"], summary="Chat", description="Chat endpoint.")
 @request_schema(QueryChatSchema)
 @response_schema(StreamChunkSchema, 200)
 @response_schema(StreamErrorSchema, 400)
@@ -32,7 +34,7 @@ async def chat(request: web.Request) -> web.StreamResponse:
 @docs(
     tags=["Prompting API"],
     summary="Echo test",
-    description="Echo endpoint for testing purposes."
+    description="Echo endpoint for testing purposes.",
 )
 @request_schema(QueryChatSchema)
 @response_schema(StreamChunkSchema, 200)
@@ -45,7 +47,9 @@ class ValidatorApplication(web.Application):
     def __init__(self, validator_instance=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self["validator"] = validator_instance if validator_instance else S1ValidatorAPI()
+        self["validator"] = (
+            validator_instance if validator_instance else S1ValidatorAPI()
+        )
 
         # Add middlewares to application
         self.add_routes(

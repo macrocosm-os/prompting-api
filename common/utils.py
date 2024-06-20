@@ -153,7 +153,6 @@ async def echo_stream(request: web.Request) -> web.StreamResponse:
     k = request_data.get("k", 1)
     message = "\n\n".join(request_data["messages"])
 
-
     echo_iterator = EchoAsyncIterator(message, k, delay=0.3)
     streamer = AsyncResponseDataStreamer(echo_iterator, selected_uid=0, delay=0.3)
 

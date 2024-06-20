@@ -86,7 +86,7 @@ class AsyncResponseDataStreamer:
         if self.lock_acquired:
             await initiated_response.write(stream_chunk.encode("utf-8"))
         else:
-            bt.logging.info(
+            bt.logging.debug(
                 f"Stream of uid {stream_chunk.selected_uid} was not the first to return, skipping..."
             )
 

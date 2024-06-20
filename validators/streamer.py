@@ -34,6 +34,7 @@ class StreamError(BaseModel):
         data = json.dumps(self.dict(), indent=4)
         return data.encode(encoding)
 
+ProcessedStreamResponse = Union[StreamChunk, StreamError]
 
 class AsyncResponseDataStreamer:
     def __init__(self, async_iterator: AsyncIterator, selected_uid:int, lock: asyncio.Lock, delay: float = 0.1):
@@ -76,8 +77,7 @@ class AsyncResponseDataStreamer:
         return initiated_response
         
     
-
-    async def stream(self, request: web.Request) -> web_response.StreamResponse:    
+    async def stream(self, request: web.Request) -> ProcessedStreamResponse:
         # response = web_response.StreamResponse(status=200, reason="OK")
         # response.headers["Content-Type"] = "application/json"
         # await response.prepare(request)  # Prepare and send the headers
@@ -85,7 +85,7 @@ class AsyncResponseDataStreamer:
         try:
             start_time = time.time()
             client_response: web.Response = None
-            final_response: Union[StreamChunk, StreamError]
+            final_response: ProcessedStreamResponse
             
             async for chunk in self.async_iterator:
                  if isinstance(chunk, str):
@@ -124,13 +124,13 @@ class AsyncResponseDataStreamer:
             final_response = error_response
             
             # Only the stream that acquires the lock should write the error response
-            if self.lock.locked():
+            if self.lock_acquired:
                 self.ensure_response_is_created(client_response)
                 client_response.set_status(500, reason="Internal error")
                 client_response.write(error_response.encode('utf-8'))            
         finally:
             # Only the stream that acquires the lock should close the response
-            if self.lock.locked():                
+            if self.lock_acquired:                
                 self.ensure_response_is_created(client_response)
                 # Ensure to close the response properly
                 await client_response.write_eof()

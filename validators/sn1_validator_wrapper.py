@@ -48,17 +48,12 @@ class S1ValidatorAPI(ValidatorAPI):
             deserialize=False,
             streaming=True,
         )
-        # uid_stream_dict = dict(zip(uids, streams_responses))
-        # random_uid, random_stream = random.choice(list(uid_stream_dict.items()))                        
         
         # Creates a streamer from the selected stream
         stream_manager = StreamManager()
-        await stream_manager.process_streams(params.request, streams_responses, uids)
+        selected_stream = await stream_manager.process_streams(params.request, streams_responses, uids)
         
-        # response = await streamer.stream(params.request)   
-        # return response
-        
-        return None
+        return selected_stream
 
 
     async def query_validator(self, params: QueryValidatorParams) -> Response:

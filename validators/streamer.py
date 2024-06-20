@@ -93,10 +93,6 @@ class AsyncResponseDataStreamer:
         return initiated_response
 
     async def stream(self, request: web.Request) -> ProcessedStreamResponse:
-        # response = web_response.StreamResponse(status=200, reason="OK")
-        # response.headers["Content-Type"] = "application/json"
-        # await response.prepare(request)  # Prepare and send the headers
-
         try:
             start_time = time.time()
             client_response: web.Response = None
@@ -104,20 +100,21 @@ class AsyncResponseDataStreamer:
 
             async for chunk in self.async_iterator:
                 if isinstance(chunk, str):
-                    # Chunks are currently returned in string arrays, so we need to concatenate them
-                    concatenated_chunks = "".join(chunk)
-                    self.accumulated_chunks.append(concatenated_chunks)
+                    # If chunk is empty, skip
+                    if not chunk:
+                        continue
+                    
+                    self.accumulated_chunks.append(chunk)
                     self.accumulated_chunks_timings.append(time.time() - start_time)
                     # Gets new response state
                     self.sequence_number += 1
                     new_response_state = self._create_chunk_response(
-                        concatenated_chunks
+                        chunk
                     )
-                    # Writes the new response state to the response
+                    # Writes the new response state to the response                    
                     client_response = await self.write_to_stream(
                         request, client_response, new_response_state, self.lock
                     )
-                    # await response.write(new_response_state.encode('utf-8'))
 
             if chunk is not None and isinstance(chunk, StreamPromptingSynapse):
                 if len(self.accumulated_chunks) == 0:

@@ -33,9 +33,9 @@ class StreamManager:
 
         await self.log_database.add_streams_to_db(completed_streams)
         # Gets the first stream that acquired the lock, meaning the first stream that was able to return a non-empty chunk
-        _, selected_stream = next(
+        selected_stream = next(
             (
-                (streamer, completed_stream)
+                completed_stream
                 for streamer, completed_stream in zip(streamers, completed_streams)
                 if streamer.lock_acquired
             ),

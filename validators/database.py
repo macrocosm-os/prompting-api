@@ -29,6 +29,7 @@ class LogDatabase:
             await self.append_dicts_to_file(
                 self.log_database_path, stream_responses_dict
             )
+            bt.logging.success("Streams added to the database.")
         except Exception as e:
             bt.logging.error(f"Error while adding streams to the database: {e}")
             raise e

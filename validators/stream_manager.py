@@ -7,7 +7,24 @@ from aiohttp.web import Request
 
 
 class StreamManager:
+    """
+    A class to manage the processing of multiple asynchronous data streams and log their responses.
+
+    Attributes:
+        log_database (LogDatabase): The log database to store stream responses.
+
+    Methods:
+        process_streams(request, streams_responses, stream_uids):
+            Processes multiple asynchronous streams, logs their responses, and returns the selected stream response.
+    """
+    
     def __init__(self, log_database_path: str = "requests_db.jsonl"):
+        """
+        Initializes the StreamManager with the given log database file path.
+
+        Args:
+            log_database_path (str): The path to the log database file, defaults to "requests_db.jsonl".
+        """
         self.log_database = LogDatabase(log_database_path)
 
     async def process_streams(
@@ -16,6 +33,17 @@ class StreamManager:
         streams_responses: List[AsyncIterator],
         stream_uids: List[int],
     ):
+        """
+        Processes multiple asynchronous streams, logs their responses, and returns the selected stream response (stream from first non-empty chunk).
+
+        Args:
+            request (Request): The web request object.
+            streams_responses (List[AsyncIterator]): A list of asynchronous iterators representing the streams.
+            stream_uids (List[int]): A list of unique IDs for the streams.
+
+        Returns:
+            ProcessedStreamResponse: The response from the selected stream.
+        """
         lock = asyncio.Lock()
 
         streamers = [

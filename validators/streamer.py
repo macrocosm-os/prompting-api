@@ -11,6 +11,18 @@ from prompting.protocol import StreamPromptingSynapse
 
 
 class StreamChunk(BaseModel):
+    """
+    A model representing a chunk of streaming data.
+
+    Attributes:
+        delta (str): The change in the stream.
+        finish_reason (Optional[str]): The reason for finishing the stream.
+        accumulated_chunks (List[str]): List of accumulated chunks.
+        accumulated_chunks_timings (List[float]): Timings for the accumulated chunks.
+        timestamp (str): The timestamp of the chunk.
+        sequence_number (int): The sequence number of the chunk.
+        selected_uid (int): The selected user ID.
+    """
     delta: str
     finish_reason: Optional[str]
     accumulated_chunks: List[str]
@@ -20,11 +32,29 @@ class StreamChunk(BaseModel):
     selected_uid: int
 
     def encode(self, encoding: str) -> bytes:
+        """
+        Encodes the StreamChunk instance to a JSON-formatted bytes object.
+
+        Args:
+            encoding (str): The encoding to use.
+
+        Returns:
+            bytes: The encoded JSON data.
+        """
         data = json.dumps(self.dict(), indent=4)
         return data.encode(encoding)
 
 
 class StreamError(BaseModel):
+    """
+    A model representing an error in the streaming data.
+
+    Attributes:
+        error (str): The error message.
+        timestamp (str): The timestamp of the error.
+        sequence_number (int): The sequence number at the time of error.
+        finish_reason (str): The reason for finishing the stream, defaults to "error".
+    """
     error: str
     timestamp: str
     sequence_number: int
@@ -39,6 +69,20 @@ ProcessedStreamResponse = Union[StreamChunk, StreamError]
 
 
 class AsyncResponseDataStreamer:
+    """
+    A class to manage asynchronous streaming of response data.
+
+    Attributes:
+        async_iterator (AsyncIterator): An asynchronous iterator for streaming data.
+        selected_uid (int): The selected user ID.
+        lock (asyncio.Lock): An asyncio lock to ensure exclusive access.
+        delay (float): Delay between processing chunks, defaults to 0.1 seconds.
+        accumulated_chunks (List[str]): List of accumulated chunks.
+        accumulated_chunks_timings (List[float]): Timings for the accumulated chunks.
+        finish_reason (str): The reason for finishing the stream.
+        sequence_number (int): The sequence number of the stream.
+        lock_acquired (bool): Flag indicating if the lock was acquired.
+    """
     def __init__(
         self,
         async_iterator: AsyncIterator,
@@ -59,6 +103,15 @@ class AsyncResponseDataStreamer:
     def ensure_response_is_created(
         self, initiated_response: web.StreamResponse
     ) -> web.StreamResponse:
+        """
+        Ensures that a StreamResponse is created if it does not already exist.
+
+        Args:
+            initiated_response (web.StreamResponse): The initiated response.
+
+        Returns:
+            web.StreamResponse: The ensured response.
+        """
         # Creates response if it was not created
         if initiated_response == None:
             initiated_response = web_response.StreamResponse(status=200, reason="OK")
@@ -74,6 +127,18 @@ class AsyncResponseDataStreamer:
         stream_chunk: StreamChunk,
         lock: asyncio.Lock,
     ) -> web.StreamResponse:
+        """
+        Writes a stream chunk to the response if the lock is acquired.
+
+        Args:
+            request (web.Request): The web request object.
+            initiated_response (web.StreamResponse): The initiated response.
+            stream_chunk (StreamChunk): The chunk of stream data to write.
+            lock (asyncio.Lock): The lock to ensure exclusive access.
+
+        Returns:
+            web.StreamResponse: The response with the written chunk.
+        """
         # Try to acquire the lock and sets the lock_acquired flag. Only the stream that acquires the lock should write to the response
         if lock.locked() == False:
             self.lock_acquired = await lock.acquire()
@@ -93,6 +158,18 @@ class AsyncResponseDataStreamer:
         return initiated_response
 
     async def stream(self, request: web.Request) -> ProcessedStreamResponse:
+        """
+        Streams data from the async iterator and writes it to the response.
+
+        Args:
+            request (web.Request): The web request object.
+
+        Returns:
+            ProcessedStreamResponse: The final processed stream response.
+
+        Raises:
+            ValueError: If the stream does not return a valid synapse.
+        """
         try:
             start_time = time.time()
             client_response: web.Response = None

@@ -23,6 +23,7 @@ class StreamChunk(BaseModel):
         sequence_number (int): The sequence number of the chunk.
         selected_uid (int): The selected user ID.
     """
+
     delta: str
     finish_reason: Optional[str]
     accumulated_chunks: List[str]
@@ -55,6 +56,7 @@ class StreamError(BaseModel):
         sequence_number (int): The sequence number at the time of error.
         finish_reason (str): The reason for finishing the stream, defaults to "error".
     """
+
     error: str
     timestamp: str
     sequence_number: int
@@ -83,6 +85,7 @@ class AsyncResponseDataStreamer:
         sequence_number (int): The sequence number of the stream.
         lock_acquired (bool): Flag indicating if the lock was acquired.
     """
+
     def __init__(
         self,
         async_iterator: AsyncIterator,
@@ -113,7 +116,7 @@ class AsyncResponseDataStreamer:
             web.StreamResponse: The ensured response.
         """
         # Creates response if it was not created
-        if initiated_response == None:
+        if initiated_response is None:
             initiated_response = web_response.StreamResponse(status=200, reason="OK")
             initiated_response.headers["Content-Type"] = "application/json"
             return initiated_response
@@ -140,10 +143,10 @@ class AsyncResponseDataStreamer:
             web.StreamResponse: The response with the written chunk.
         """
         # Try to acquire the lock and sets the lock_acquired flag. Only the stream that acquires the lock should write to the response
-        if lock.locked() == False:
+        if not lock.locked():
             self.lock_acquired = await lock.acquire()
 
-        if initiated_response == None and self.lock_acquired:
+        if initiated_response is None and self.lock_acquired:
             initiated_response = self.ensure_response_is_created(initiated_response)
             # Prepare and send the headers
             await initiated_response.prepare(request)
@@ -180,15 +183,13 @@ class AsyncResponseDataStreamer:
                     # If chunk is empty, skip
                     if not chunk:
                         continue
-                    
+
                     self.accumulated_chunks.append(chunk)
                     self.accumulated_chunks_timings.append(time.time() - start_time)
                     # Gets new response state
                     self.sequence_number += 1
-                    new_response_state = self._create_chunk_response(
-                        chunk
-                    )
-                    # Writes the new response state to the response                    
+                    new_response_state = self._create_chunk_response(chunk)
+                    # Writes the new response state to the response
                     client_response = await self.write_to_stream(
                         request, client_response, new_response_state, self.lock
                     )

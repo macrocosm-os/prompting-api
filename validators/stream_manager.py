@@ -17,7 +17,7 @@ class StreamManager:
         process_streams(request, streams_responses, stream_uids):
             Processes multiple asynchronous streams, logs their responses, and returns the selected stream response.
     """
-    
+
     def __init__(self, log_database_path: str = "requests_db.jsonl"):
         """
         Initializes the StreamManager with the given log database file path.

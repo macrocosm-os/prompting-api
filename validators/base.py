@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List
 from dataclasses import dataclass
-from aiohttp.web import Response, Request, StreamResponse
+from aiohttp.web import Request, StreamResponse
 
 
 @dataclass
@@ -35,6 +35,11 @@ class ValidatorAPI(ABC):
     @abstractmethod
     async def query_validator(self, params: QueryValidatorParams) -> StreamResponse:
         pass
+
+
+class OpenAIValidatorAPI(ValidatorAPI):
+    async def query_validator(self, params: QueryValidatorParams) -> StreamResponse:
+        ...
 
 
 class MockValidator(ValidatorAPI):

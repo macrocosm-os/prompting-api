@@ -15,14 +15,14 @@ class LogDatabase:
     Methods:
         ensure_db_exists(file_path):
             Ensures that the log database file exists. If it doesn't, an empty file is created.
-        
+
         add_streams_to_db(stream_responses: ProcessedStreamResponse):
             Asynchronously adds stream responses to the log database.
-        
+
         append_dicts_to_file(file_path, dictionaries):
             Asynchronously appends a list of dictionaries to the specified file.
     """
-    
+
     def __init__(self, log_database_path: str):
         """
         Initializes the LogDatabase with the given log database file path.
@@ -42,7 +42,7 @@ class LogDatabase:
         """
         if not os.path.exists(file_path):
             # Create an empty JSONL file
-            with open(file_path, "w") as file:
+            with open(file_path, "w") as _:
                 pass
             # TODO: change log to debug
             bt.logging.info(f"File '{file_path}' created.")
@@ -59,7 +59,7 @@ class LogDatabase:
         Raises:
             Exception: If an error occurs while adding streams to the database.
         """
-        bt.logging.info(f"Writing streams to the database...")
+        bt.logging.info("Writing streams to the database...")
         try:
             stream_responses_dict = [
                 dict(stream_response) for stream_response in stream_responses

@@ -11,6 +11,13 @@ deprecated = "^1.2.14"
 aiofiles = "^24.1.0"
 aiohttp-apispec = "^2.2.3"
 torch = "2.3.0"
+prompting = {git = "https://github.com/macrocosm-os/prompting.git"}
+pre-commit = "3.3.2"
+python-dotenv = "^1.0.1"
+loguru = "^0.7.2"
+fastapi = "0.110.1"
+pydantic = "^2.8.2"
+openai = "1.9.0"
 
 
 [build-system]

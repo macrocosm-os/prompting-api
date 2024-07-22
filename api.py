@@ -7,7 +7,7 @@ import uvicorn
 import settings
 import openai
 
-client = openai.Client(api_key=settings.OPENAI_API_KEY)
+client = openai.AsyncClient(api_key=settings.OPENAI_API_KEY)
 
 app = FastAPI()
 
@@ -66,7 +66,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.test:
         uvicorn.run(
-            "test_api:app", host="0.0.0.0", port=8000, loop="asyncio", reload=True
+            "api:test_app", host="0.0.0.0", port=8000, loop="asyncio", reload=True
         )
     else:
         validator_instance = S1ValidatorAPI()

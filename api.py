@@ -1,27 +1,32 @@
-import argparse
-from fastapi import FastAPI, Request
-from validators import QueryValidatorParams, S1ValidatorAPI
+from fastapi import FastAPI, Request, Body
+from validators import S1ValidatorAPI
+from loguru import logger
 from common.schemas import QueryChatRequest, StreamChunkResponse, StreamErrorResponse
 from common import utils
 import uvicorn
 import settings
 import openai
+from common.middlewares import middleware
 
 client = openai.AsyncClient(api_key=settings.OPENAI_API_KEY)
 
-app = FastAPI()
+app = FastAPI(middleware=middleware)
+if not settings.TESTING:
+    validator_instance = S1ValidatorAPI()
 
 
 @app.post(
     "/chat/",
-    response_model=StreamChunkResponse,
+    # response_model=StreamChunkResponse,
     responses={400: {"model": StreamErrorResponse}},
 )
-async def chat(request: Request, query: QueryChatRequest):
+async def chat(request: Request, query: QueryChatRequest = Body(...)):
     """Chat endpoint for the validator"""
-    params = QueryValidatorParams.from_request(request)
-    response = await validator_instance.query_validator(params)
-    return response
+    try:
+        query.request = request
+        return await validator_instance.query_validator(query)
+    except Exception as e:
+        logger.exception(e)
 
 
 @app.post(
@@ -33,7 +38,7 @@ async def echo_stream(request: Request, query: QueryChatRequest):
     return await utils.echo_stream(request)
 
 
-test_app = FastAPI()
+test_app = FastAPI(middleware=middleware)
 
 
 @test_app.post("/openai_chat/", response_model=StreamChunkResponse)
@@ -61,13 +66,12 @@ async def openai_chat(request: QueryChatRequest):
 if __name__ == "__main__":
     # Note that the arguments to this file are forwarded to bittensor, even though no
     # argparse is used here.
-    parser = argparse.ArgumentParser(description="Run the validator application.")
-    parser.add_argument("--test", action="store_true", help="Run in test mode.")
-    args = parser.parse_args()
-    if args.test:
-        uvicorn.run(
-            "api:test_app", host="0.0.0.0", port=8000, loop="asyncio", reload=True
-        )
-    else:
-        validator_instance = S1ValidatorAPI()
-        uvicorn.run("api:app", host="0.0.0.0", port=8000, loop="asyncio", reload=True)
+    # parser = argparse.ArgumentParser(description="Run the validator application.")
+    # parser.add_argument("--test", action="store_true", help="Run in test mode.")
+    # args = parser.parse_args()
+    # if args.test:
+    #     uvicorn.run(
+    #         "api:test_app", host="0.0.0.0", port=8000, loop="asyncio", reload=True
+    #     )
+    # else:
+    uvicorn.run("api:app", host="0.0.0.0", port=8000, loop="asyncio", reload=True)

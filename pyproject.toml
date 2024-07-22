@@ -21,6 +21,7 @@ openai = "1.9.0"
 apscheduler = "^3.10.4"
 streamlit = "^1.36.0"
 plotly = "^5.22.0"
+ruff = "^0.5.4"
 
 
 [build-system]

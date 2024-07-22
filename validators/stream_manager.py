@@ -3,7 +3,7 @@ import bittensor as bt
 from .streamer import AsyncResponseDataStreamer
 from .database import LogDatabase
 from typing import List, AsyncIterator
-from aiohttp.web import Request
+from fastapi import Request
 
 
 class StreamManager:
@@ -56,7 +56,9 @@ class StreamManager:
             *[streamer.stream(request) for streamer in streamers]
         )
 
-        lock.release()
+        if lock.locked():
+            lock.release()
+
         bt.logging.info(f"Streams from uids: {stream_uids} processing completed.")
 
         await self.log_database.add_streams_to_db(completed_streams)

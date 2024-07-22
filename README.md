@@ -65,10 +65,10 @@ python api.py --test
 
 ### Running On SN1
 
-Run an API server on subnet 1 with the following command:
+Run an API server on subnet 61 (test subnet) with the following command:
 
 ```bash
-python api.py --wallet.name <WALLET_NAME> --wallet.hotkey <WALLET_HOTKEY> --netuid <NETUID> --neuron.model_id mock --neuron.tasks math --neuron.task_p 1 --neuron.device cpu
+python api.py --wallet.name <WALLET_NAME> --wallet.hotkey <WALLET_HOTKEY> --netuid <NETUID> --neuron.model_id mock --neuron.tasks math --neuron.task_p 1 --neuron.device cpu --subtensor.network test
 ```
 
 The command ensures that no GPU memory is used by the server, and that the large models used by the incentive mechanism are not loaded.

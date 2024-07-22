@@ -2,8 +2,11 @@ import bittensor as bt
 from prompting.validator import Validator
 from prompting.utils.uids import get_random_uids
 from prompting.protocol import StreamPromptingSynapse
-from .base import QueryValidatorParams, ValidatorAPI
-from aiohttp.web_response import Response, StreamResponse
+from .base import ValidatorAPI
+from common.schemas import QueryChatRequest
+
+# from aiohttp.web_response import Response, StreamResponse
+from fastapi.responses import StreamingResponse
 from .validator_utils import get_top_incentive_uids
 from .stream_manager import StreamManager
 
@@ -12,10 +15,10 @@ class S1ValidatorAPI(ValidatorAPI):
     def __init__(self):
         self.validator = Validator()
 
-    def sample_uids(self, params: QueryValidatorParams):
+    def sample_uids(self, params: QueryChatRequest):
         if params.sampling_mode == "random":
             uids = get_random_uids(
-                self.validator, k=params.k_miners, exclude=params.exclude or []
+                self.validator, k=params.k, exclude=params.exclude or []
             ).tolist()
             return uids
         if params.sampling_mode == "top_incentive":
@@ -28,7 +31,7 @@ class S1ValidatorAPI(ValidatorAPI):
 
             return top_uids
 
-    async def get_stream_response(self, params: QueryValidatorParams) -> StreamResponse:
+    async def query_validator(self, params: QueryChatRequest) -> StreamingResponse:
         # Guess the task name of current request
         # task_name = utils.guess_task_name(params.messages[-1])
 
@@ -51,13 +54,15 @@ class S1ValidatorAPI(ValidatorAPI):
             streaming=True,
         )
 
+        bt.logging.info(
+            f"Completed sampling dendrite with uids: {uids}. Streams_responses: {streams_responses}"
+        )
+
         # Creates a streamer from the selected stream
         stream_manager = StreamManager()
         selected_stream = await stream_manager.process_streams(
             params.request, streams_responses, uids
         )
-
-        return selected_stream
-
-    async def query_validator(self, params: QueryValidatorParams) -> Response:
-        return await self.get_stream_response(params)
+        bt.logging.info(f"Selected stream: {selected_stream}, returning...")
+        return StreamingResponse(selected_stream, media_type="application/json")
+        # return selected_stream

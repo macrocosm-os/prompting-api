@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, Literal
+from typing import Optional, Literal, Any
 
 
 class QueryChatRequest(BaseModel):
@@ -24,6 +24,7 @@ class QueryChatRequest(BaseModel):
         "random",
         description="The mode of sampling to use, defaults to 'random'. Can be either 'random' or 'top_incentive'.",
     )
+    request: Optional[Any]
 
 
 class StreamChunkResponse(BaseModel):

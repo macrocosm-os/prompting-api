@@ -1,0 +1,4 @@
+{"error": "name 'StreamPromptingSynapse' is not defined", "timestamp": "2024-07-22T16:34:12.719618", "sequence_number": 0, "finish_reason": "error"}
+{"delta": "", "finish_reason": "completed", "accumulated_chunks": [""], "accumulated_chunks_timings": [0.1948544979095459], "timestamp": "2024-07-22T16:35:50.685508", "sequence_number": 1, "selected_uid": 43}
+{"delta": "", "finish_reason": "completed", "accumulated_chunks": [""], "accumulated_chunks_timings": [0.23474526405334473], "timestamp": "2024-07-22T16:36:15.759915", "sequence_number": 1, "selected_uid": 54}
+{"delta": "", "finish_reason": "completed", "accumulated_chunks": [""], "accumulated_chunks_timings": [0.3042428493499756], "timestamp": "2024-07-22T16:44:44.616637", "sequence_number": 1, "selected_uid": 124}

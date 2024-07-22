@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "prompting-api"
+version = "0.1.0"
+description = "The official REST API for Bittensor's flagship subnet 1 ([prompting](https://github.com/opentensor/prompting)), built by [Macrocosmos](https://macrocosmos.ai)."
+authors = ["Felix Quinque, Dmytro Bobrenko, Steffen Cruz, Kalei Brady"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10, <3.12"
+deprecated = "^1.2.14"
+aiofiles = "^24.1.0"
+aiohttp-apispec = "^2.2.3"
+torch = "2.3.0"
+prompting = {git = "https://github.com/macrocosm-os/prompting.git"}
+pre-commit = "3.3.2"
+python-dotenv = "^1.0.1"
+loguru = "^0.7.2"
+fastapi = "0.110.1"
+pydantic = "^2.8.2"
+openai = "1.9.0"
+apscheduler = "^3.10.4"
+streamlit = "^1.36.0"
+plotly = "^5.22.0"
+ruff = "^0.5.4"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

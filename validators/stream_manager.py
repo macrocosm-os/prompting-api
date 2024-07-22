@@ -3,7 +3,7 @@ import bittensor as bt
 from .streamer import AsyncResponseDataStreamer
 from .database import LogDatabase
 from typing import List, AsyncIterator
-from aiohttp.web import Request
+from fastapi import Request
 
 
 class StreamManager:
@@ -17,7 +17,7 @@ class StreamManager:
         process_streams(request, streams_responses, stream_uids):
             Processes multiple asynchronous streams, logs their responses, and returns the selected stream response.
     """
-    
+
     def __init__(self, log_database_path: str = "requests_db.jsonl"):
         """
         Initializes the StreamManager with the given log database file path.
@@ -56,7 +56,9 @@ class StreamManager:
             *[streamer.stream(request) for streamer in streamers]
         )
 
-        lock.release()
+        if lock.locked():
+            lock.release()
+
         bt.logging.info(f"Streams from uids: {stream_uids} processing completed.")
 
         await self.log_database.add_streams_to_db(completed_streams)

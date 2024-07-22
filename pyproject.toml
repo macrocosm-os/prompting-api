@@ -6,7 +6,7 @@ authors = ["Felix Quinque, Dmytro Bobrenko, Steffen Cruz, Kalei Brady"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.9, <3.12"
+python = "^3.10, <3.12"
 deprecated = "^1.2.14"
 aiofiles = "^24.1.0"
 aiohttp-apispec = "^2.2.3"
@@ -18,6 +18,9 @@ loguru = "^0.7.2"
 fastapi = "0.110.1"
 pydantic = "^2.8.2"
 openai = "1.9.0"
+apscheduler = "^3.10.4"
+streamlit = "^1.36.0"
+plotly = "^5.22.0"
 
 
 [build-system]

@@ -7,7 +7,7 @@ import uvicorn
 import settings
 import openai
 
-client = openai.Client(settings.OPENAI_API_KEY)
+client = openai.Client(api_key=settings.OPENAI_API_KEY)
 
 app = FastAPI()
 

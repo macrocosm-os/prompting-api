@@ -1,12 +1,9 @@
-import asyncio
-import random
 import bittensor as bt
 from prompting.validator import Validator
 from prompting.utils.uids import get_random_uids
 from prompting.protocol import StreamPromptingSynapse
 from .base import QueryValidatorParams, ValidatorAPI
 from aiohttp.web_response import Response, StreamResponse
-from .streamer import AsyncResponseDataStreamer
 from .validator_utils import get_top_incentive_uids
 from .stream_manager import StreamManager
 

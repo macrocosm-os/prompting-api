@@ -51,17 +51,24 @@ First activate the virtual environment:
 poetry shell
 ```
 
+Then, set up your .env file by adding the openai key (if you want to run tests using openai) and the API key that you'd like
+to use to secure the API (optional).
+
+### Testing with OpenAI
+
 Now you can either run the API in test mode (provided you have created a .env file with an openai key) where it will simply connect to openai. This is recommended when you're
 e.g. developing a frontend and want fast/easy response times without having to set up your wallet/hotkey etc.
 
 ```
-uvicorn test_api:app
+python api.py --test
 ```
+
+### Running On SN1
 
 Run an API server on subnet 1 with the following command:
 
 ```bash
-EXPECTED_ACCESS_KEY=<ACCESS_KEY> python server.py --wallet.name <WALLET_NAME> --wallet.hotkey <WALLET_HOTKEY> --netuid <NETUID> --neuron.model_id mock --neuron.tasks math --neuron.task_p 1 --neuron.device cpu
+python api.py --wallet.name <WALLET_NAME> --wallet.hotkey <WALLET_HOTKEY> --netuid <NETUID> --neuron.model_id mock --neuron.tasks math --neuron.task_p 1 --neuron.device cpu
 ```
 
 The command ensures that no GPU memory is used by the server, and that the large models used by the incentive mechanism are not loaded.
@@ -71,10 +78,10 @@ The command ensures that no GPU memory is used by the server, and that the large
 We recommend that you run the server using a process manager like PM2. This will ensure that the server is always running and will restart if it crashes.
 
 ```bash
-EXPECTED_ACCESS_KEY=<ACCESS_KEY> pm2 start server.py --interpreter python3 --name sn1-api -- --wallet.name <WALLET_NAME> --wallet.hotkey <WALLET_HOTKEY> --netuid <NETUID> --neuron.model_id mock --neuron.tasks math --neuron.task_p 1 --neuron.device cpu
+pm2 start api.py --interpreter python3 --name sn1-api -- --wallet.name <WALLET_NAME> --wallet.hotkey <WALLET_HOTKEY> --netuid <NETUID> --neuron.model_id mock --neuron.tasks math --neuron.task_p 1 --neuron.device cpu
 ```
 
-### Run with Docker
+### Run with Docker (WARNING: currently not supported)
 
 To run api in docker container you have to build the image:
 ```
@@ -119,8 +126,11 @@ Responses from the `/chat` endpoint are handled by two classes: `StreamChunk` an
 
 > Note: The API is subject to change as the project evolves.
 
-## Testing
+## Testing Locally
 To test the API locally, you can use the following curl command:
+```
+
+```
 
 ```bash
 curl --no-buffer -X POST http://0.0.0.0:10000/chat/ -H "api_key: <ACCESS_KEY>" -H "Content-Type: application/json" -d '{"k": 5, "timeout": 15, "roles": ["user"], "messages": ["Tell me a happy story about a rabbit and a turtle that meet on a budget cruise around Northern Ireland"]}'

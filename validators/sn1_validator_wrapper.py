@@ -1,21 +1,21 @@
-import asyncio
-import random
 import bittensor as bt
 from prompting.validator import Validator
 from prompting.utils.uids import get_random_uids
 from prompting.protocol import StreamPromptingSynapse
+
+from validators.query_validators import sample_hotkey_uids, split_responses_by_uid, split_responses_by_uid
 from .base import QueryValidatorParams, ValidatorAPI
 from aiohttp.web_response import Response, StreamResponse
-from .streamer import AsyncResponseDataStreamer
 from .validator_utils import get_top_incentive_uids
 from .stream_manager import StreamManager
 
 
 class S1ValidatorAPI(ValidatorAPI):
-    def __init__(self):
+    def __init__(self, query_validators: bool = True):
         self.validator = Validator()
-
-    def sample_uids(self, params: QueryValidatorParams):
+        self._query_validators = query_validators
+    
+    def sample_uids(self, params: QueryValidatorParams) -> list[int]:
         if params.sampling_mode == "random":
             uids = get_random_uids(
                 self.validator, k=params.k_miners, exclude=params.exclude or []
@@ -36,7 +36,10 @@ class S1ValidatorAPI(ValidatorAPI):
         # task_name = utils.guess_task_name(params.messages[-1])
 
         # Get the list of uids to query for this step.
-        uids = self.sample_uids(params)
+        if self._query_validators:
+            uids = sample_hotkey_uids([self.validator.wallet.hotkey.ss58_address], k=1)
+        else:
+            uids = self.sample_uids(params)
         axons = [self.validator.metagraph.axons[uid] for uid in uids]
 
         # Make calls to the network with the prompt.
@@ -54,10 +57,16 @@ class S1ValidatorAPI(ValidatorAPI):
             streaming=True,
         )
 
-        # Creates a streamer from the selected stream
+        if self._query_validators:
+            uid_to_async_generators = await split_responses_by_uid(params, streams_responses)
+            async_generators = list(uid_to_async_generators.values())
+            uids = list(uid_to_async_generators.keys())
+        else:
+            async_generators = streams_responses
+
         stream_manager = StreamManager()
         selected_stream = await stream_manager.process_streams(
-            params.request, streams_responses, uids
+            params.request, async_generators, uids
         )
 
         return selected_stream

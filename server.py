@@ -1,4 +1,5 @@
 import asyncio
+import os
 
 import bittensor as bt
 from aiohttp import web
@@ -48,7 +49,7 @@ class ValidatorApplication(web.Application):
         super().__init__(*args, **kwargs)
 
         self["validator"] = (
-            validator_instance if validator_instance else S1ValidatorAPI()
+            validator_instance if validator_instance else S1ValidatorAPI(query_validators=True)
         )
 
         # Add middlewares to application
@@ -78,7 +79,7 @@ class ValidatorApplication(web.Application):
 
 def main(run_aio_app=True, test=False) -> None:
     loop = asyncio.get_event_loop()
-    port = 10000
+    port = os.environ.get("PORT", 42177)
     if run_aio_app:
         # Instantiate the application with the actual validator
         bt.logging.info("Starting validator application.")

@@ -316,10 +316,13 @@ def plot_reward_trends(df_stats, task='qa', window=14, col='normalized_reward', 
 
     # Add annotations based on relevant releases
     for idx, row in release_dates.iterrows():
-        if all(col not in row['tasks_affected'] for col in ['all',task]):
-            continue
+        line_color = 'grey'
+        if task in row['tasks_affected']:
+            line_color='red'
+        elif 'all' not in row['tasks_affected']:
+            line_color='blue'           
         # TODO add annotation or something
-        fig.add_vline(row['release_date'], line_color='red', opacity=0.6, line_dash='dot', line_width=1)#, annotation_text=str(v))
+        fig.add_vline(row['release_date'], line_color=line_color, opacity=0.6, line_dash='dot', line_width=1)#, annotation_text=str(v))
 
     return fig
 
@@ -404,8 +407,4 @@ def load_state_vars(username=USERNAME, percentile=0.95):
 
 if __name__ == '__main__':
 
-    print('Loading runs')
-    df = load_runs()
-
-    df.to_csv('test_wandb_data.csv', index=False)
-    print(df)
+    pass

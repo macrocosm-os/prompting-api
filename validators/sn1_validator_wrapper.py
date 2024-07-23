@@ -16,6 +16,7 @@ class S1ValidatorAPI(ValidatorAPI):
         self.validator = Validator()
 
     def sample_uids(self, params: QueryChatRequest):
+        return [213]
         if params.sampling_mode == "random":
             uids = get_random_uids(
                 self.validator, k=params.k, exclude=params.exclude or []
@@ -31,7 +32,9 @@ class S1ValidatorAPI(ValidatorAPI):
 
             return top_uids
 
-    async def query_validator(self, params: QueryChatRequest) -> StreamingResponse:
+    async def query_validator(
+        self, params: QueryChatRequest
+    ) -> StreamingResponse | None:
         # Guess the task name of current request
         # task_name = utils.guess_task_name(params.messages[-1])
 
@@ -60,9 +63,13 @@ class S1ValidatorAPI(ValidatorAPI):
 
         # Creates a streamer from the selected stream
         stream_manager = StreamManager()
+        bt.logging.info(f"Responses: {streams_responses}")
         selected_stream = await stream_manager.process_streams(
             params.request, streams_responses, uids
         )
         bt.logging.info(f"Selected stream: {selected_stream}, returning...")
-        return StreamingResponse(selected_stream, media_type="application/json")
+        if selected_stream is None:
+            return None
+        # return StreamingResponse(content=selected_stream, media_type="application/json")
+        return selected_stream
         # return selected_stream

@@ -64,7 +64,6 @@ class ValidatorStreamManager(StreamManager):
         ]
 
         processed_stream_results = await asyncio.gather(*process_stream_tasks, return_exceptions=True)
-        await self.log_database.add_streams_to_db(processed_stream_results)
         return processed_stream_results[0]
 
     async def _process_stream(

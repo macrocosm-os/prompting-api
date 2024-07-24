@@ -69,7 +69,7 @@ The command ensures that no GPU memory is used by the server, and that the large
 We recommend that you run the server using a process manager like PM2. This will ensure that the server is always running and will restart if it crashes. 
 
 ```bash
-EXPECTED_ACCESS_KEY=<ACCESS_KEY> pm2 start server.py --interpreter python3 --name sn1-api -- --wallet.name <WALLET_NAME> --wallet.hotkey <WALLET_HOTKEY> --netuid <NETUID> --neuron.model_id mock --neuron.tasks math --neuron.task_p 1 --neuron.device cpu
+EXPECTED_ACCESS_KEY=<ACCESS_KEY> pm2 start server.py --interpreter python3 --name sn1-api -- --wallet.name <WALLET_NAME> --wallet.hotkey <WALLET_HOTKEY> --netuid <NETUID> --neuron.model_id mock --neuron.tasks math --neuron.task_p 1 --neuron.device cpu --neuron.axon_off
 ```
 
 ### Run with Docker
@@ -82,7 +82,7 @@ after the image is build properly
 you can start it with command:
 
 ```
-docker run -e EXPECTED_ACCESS_KEY=<ACCESS_KEY> prompting-api:latest --interpreter python3 --name sn1-api -- --wallet.name <WALLET_NAME> --wallet.hotkey <WALLET_HOTKEY> --netuid <NETUID> --neuron.model_id mock --neuron.tasks math --neuron.task_p 1 --neuron.device cpu
+docker run -e EXPECTED_ACCESS_KEY=<ACCESS_KEY> prompting-api:latest --interpreter python3 --name sn1-api -- --wallet.name <WALLET_NAME> --wallet.hotkey <WALLET_HOTKEY> --netuid <NETUID> --neuron.model_id mock --neuron.tasks math --neuron.task_p 1 --neuron.device cpu --neuron.axon_off
 ```
 
 ## API Usage

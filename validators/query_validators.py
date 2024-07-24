@@ -1,14 +1,19 @@
 
-from collections import defaultdict
 import json
 import random
+from collections import defaultdict
 from typing import AsyncIterator
-from prompting.protocol import StreamPromptingSynapse
+
 import bittensor as bt
+from prompting.protocol import StreamPromptingSynapse
+from prompting.validator import Validator
 
 
-def sample_hotkey_uids(validator, hotkeys: list[str], k: int = 1) -> list[int]:
-    """Sample k unique UIDs from the list of hotkeys. Returns all UIDs if the number of hotkeys is less than k."""
+def sample_hotkey_uids(validator: Validator, hotkeys: list[str], k: int = 1) -> list[int]:
+    """Sample k unique UIDs from the list of hotkeys.
+
+    Returns all UIDs if the number of hotkeys is less than k.
+    """
     uids = [validator.metagraph.hotkeys.index(hotkey) for hotkey in hotkeys]
     return random.sample(uids, min(k, len(uids)))
 

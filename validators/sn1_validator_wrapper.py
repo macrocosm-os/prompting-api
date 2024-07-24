@@ -3,7 +3,7 @@ from prompting.validator import Validator
 from prompting.utils.uids import get_random_uids
 from prompting.protocol import StreamPromptingSynapse
 
-from validators.query_validators import sample_hotkey_uids, split_responses_by_uid, split_responses_by_uid
+from validators.query_validators import sample_hotkey_uids, split_responses_by_uid
 from .base import QueryValidatorParams, ValidatorAPI
 from aiohttp.web_response import Response, StreamResponse
 from .validator_utils import get_top_incentive_uids
@@ -37,7 +37,7 @@ class S1ValidatorAPI(ValidatorAPI):
 
         # Get the list of uids to query for this step.
         if self._query_validators:
-            uids = sample_hotkey_uids([self.validator.wallet.hotkey.ss58_address], k=1)
+            uids = sample_hotkey_uids(self.validator, [self.validator.wallet.hotkey.ss58_address], k=1)
         else:
             uids = self.sample_uids(params)
         axons = [self.validator.metagraph.axons[uid] for uid in uids]
@@ -58,7 +58,7 @@ class S1ValidatorAPI(ValidatorAPI):
         )
 
         if self._query_validators:
-            uid_to_async_generators = await split_responses_by_uid(params, streams_responses)
+            uid_to_async_generators = await split_responses_by_uid(streams_responses)
             async_generators = list(uid_to_async_generators.values())
             uids = list(uid_to_async_generators.keys())
         else:

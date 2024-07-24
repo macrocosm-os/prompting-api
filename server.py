@@ -79,7 +79,7 @@ class ValidatorApplication(web.Application):
 
 def main(run_aio_app=True, test=False) -> None:
     loop = asyncio.get_event_loop()
-    port = os.environ.get("PORT", 42177)
+    port = int(os.environ.get("PORT", 42177))
     if run_aio_app:
         # Instantiate the application with the actual validator
         bt.logging.info("Starting validator application.")

@@ -90,7 +90,7 @@ class ValidatorStreamManager(StreamManager):
 
                     streams = self._parse_stream(chunk, uid_to_chunks)
                     # Take the longest completion first.
-                    streams = sorted(streams, key=lambda x: len(x['chunk']), reverse=True)
+                    streams = sorted(streams, key=lambda x: len(x["chunk"]), reverse=True)
                     for data in streams:
                         miner_uid = data.get("uid")
                         response_chunk = data.get("chunk")

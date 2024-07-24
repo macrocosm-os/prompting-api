@@ -3,7 +3,7 @@ from prompting.validator import Validator
 from prompting.utils.uids import get_random_uids
 from prompting.protocol import StreamPromptingSynapse
 
-from validators.query_validators import sample_hotkey_uids, split_responses_by_uid
+from .query_validators import ValidatorStreamManager
 from .base import QueryValidatorParams, ValidatorAPI
 from aiohttp.web_response import Response, StreamResponse
 from .validator_utils import get_top_incentive_uids
@@ -37,10 +37,19 @@ class S1ValidatorAPI(ValidatorAPI):
 
         # Get the list of uids to query for this step.
         if self._query_validators:
-            uids = sample_hotkey_uids(self.validator, [self.validator.wallet.hotkey.ss58_address], k=1)
+            # As of now we are querying only OTF validatior.
+            uids = [self.validator.metagraph.hotkeys.index(self.validator.wallet.hotkey.ss58_address)]
+            axon = self.validator.metagraph.axons[uids[0]]
+            # TODO: Remove port setting.
+            # Temporary hack to override port, until organic scoring is not in main branch.
+            # Currently, two OTF validators are running (one is not setting weights),
+            # and port can be overridden by validator without organic scoring.
+            axon.port = 42174
+            axons = [axon]
+
         else:
             uids = self.sample_uids(params)
-        axons = [self.validator.metagraph.axons[uid] for uid in uids]
+            axons = [self.validator.metagraph.axons[uid] for uid in uids]
 
         # Make calls to the network with the prompt.
         bt.logging.info(
@@ -58,16 +67,10 @@ class S1ValidatorAPI(ValidatorAPI):
         )
 
         if self._query_validators:
-            uid_to_async_generators = await split_responses_by_uid(streams_responses)
-            async_generators = list(uid_to_async_generators.values())
-            uids = list(uid_to_async_generators.keys())
+            stream_manager = ValidatorStreamManager()
         else:
-            async_generators = streams_responses
-
-        stream_manager = StreamManager()
-        selected_stream = await stream_manager.process_streams(
-            params.request, async_generators, uids
-        )
+            stream_manager = StreamManager()
+        selected_stream = await stream_manager.process_streams(params.request, streams_responses, uids)
 
         return selected_stream
 

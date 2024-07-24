@@ -62,7 +62,9 @@ class ValidatorStreamManager(StreamManager):
             self._process_stream(request, uid, response)
             for uid, response in zip(stream_uids, streams_responses)
         ]
+
         processed_stream_results = await asyncio.gather(*process_stream_tasks, return_exceptions=True)
+        await self.log_database.add_streams_to_db(processed_stream_results)
         return processed_stream_results[0]
 
     async def _process_stream(
@@ -88,37 +90,36 @@ class ValidatorStreamManager(StreamManager):
                         continue
 
                     streams = self._parse_stream(chunk, uid_to_chunks)
-                    data = max([data for data in streams if data is not None], key=len)
-                    if data is None:
-                        continue
+                    # Take the longest completion first.
+                    streams = sorted(streams, key=lambda x: len(x['chunk']), reverse=True)
+                    for data in streams:
+                        miner_uid = data.get("uid")
+                        response_chunk = data.get("chunk")
+                        if self._chosen_uid is not None and miner_uid != self._chosen_uid:
+                            continue
 
-                    miner_uid = data.get("uid")
-                    response_chunk = data.get("chunk")
-                    if self._chosen_uid is not None and miner_uid != self._chosen_uid:
-                        continue
+                        if self._chosen_uid is None and miner_uid is not None and response_chunk is not None:
+                            self._chosen_uid = miner_uid
 
-                    if self._chosen_uid is None and miner_uid is not None and response_chunk is not None:
-                        self._chosen_uid = miner_uid
+                        sequence_number[miner_uid] += 1
+                        accumulated_chunks[miner_uid].append(response_chunk)
+                        accumulated_chunks_timings[miner_uid].append(time.perf_counter() - start_time)
 
-                    sequence_number[miner_uid] += 1
-                    accumulated_chunks[miner_uid].append(response_chunk)
-                    accumulated_chunks_timings[miner_uid].append(time.perf_counter() - start_time)
+                        response_state = StreamChunk(
+                            delta=response_chunk,
+                            finish_reason=None,
+                            accumulated_chunks=accumulated_chunks[miner_uid],
+                            accumulated_chunks_timings=accumulated_chunks_timings[miner_uid],
+                            timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                            sequence_number=sequence_number[miner_uid],
+                            selected_uid=miner_uid,
+                        )
 
-                    response_state = StreamChunk(
-                        delta=chunk,
-                        finish_reason=None,
-                        accumulated_chunks=accumulated_chunks[miner_uid],
-                        accumulated_chunks_timings=accumulated_chunks_timings[miner_uid],
-                        timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(),
-                        sequence_number=sequence_number[miner_uid],
-                        selected_uid=miner_uid,
-                    )
-
-                    if client_response is None:
-                        client_response = StreamResponse(status=200, reason="OK")
-                        client_response.headers["Content-Type"] = "application/json"
-                        await client_response.prepare(request)
-                    await client_response.write(response_state.encode("utf-8"))
+                        if client_response is None:
+                            client_response = StreamResponse(status=200, reason="OK")
+                            client_response.headers["Content-Type"] = "application/json"
+                            await client_response.prepare(request)
+                        await client_response.write(response_state.encode("utf-8"))
                 elif chunk is not None and isinstance(chunk, StreamPromptingSynapse):
                     if self._chosen_uid is None:
                         continue
@@ -127,14 +128,13 @@ class ValidatorStreamManager(StreamManager):
                         accumulated_chunks[self._chosen_uid].append(synapse.completion)
                         accumulated_chunks_timings[self._chosen_uid].append(time.perf_counter() - start_time)
 
-                    # sequence_number[miner_uid] += 1
                     final_response = StreamChunk(
-                        delta=synapse.completion,
+                        delta="",
                         finish_reason="completed",
                         accumulated_chunks=accumulated_chunks[self._chosen_uid],
                         accumulated_chunks_timings=accumulated_chunks_timings[self._chosen_uid],
                         timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(),
-                        sequence_number=sequence_number[self._chosen_uid],
+                        sequence_number=sequence_number[self._chosen_uid] + 1,
                         selected_uid=self._chosen_uid,
                     )
 

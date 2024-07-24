@@ -1,13 +1,15 @@
-import bittensor as bt
-from prompting.validator import Validator
-from prompting.utils.uids import get_random_uids
-from prompting.protocol import StreamPromptingSynapse
+import os
 
-from .query_validators import ValidatorStreamManager
-from .base import QueryValidatorParams, ValidatorAPI
+import bittensor as bt
 from aiohttp.web_response import Response, StreamResponse
-from .validator_utils import get_top_incentive_uids
+from prompting.protocol import StreamPromptingSynapse
+from prompting.utils.uids import get_random_uids
+from prompting.validator import Validator
+
+from .base import QueryValidatorParams, ValidatorAPI
+from .query_validators import ValidatorStreamManager
 from .stream_manager import StreamManager
+from .validator_utils import get_top_incentive_uids
 
 
 class S1ValidatorAPI(ValidatorAPI):
@@ -44,7 +46,7 @@ class S1ValidatorAPI(ValidatorAPI):
             # Temporary hack to override port, until organic scoring is not in main branch.
             # Currently, two OTF validators are running (one is not setting weights),
             # and port can be overridden by validator without organic scoring.
-            axon.port = 42174
+            axon.port = int(os.environ("VAL_PORT", 42174))
             axons = [axon]
 
         else:

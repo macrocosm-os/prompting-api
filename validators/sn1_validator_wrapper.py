@@ -46,7 +46,8 @@ class S1ValidatorAPI(ValidatorAPI):
             # Temporary hack to override port, until organic scoring is not in main branch.
             # Currently, two OTF validators are running (one is not setting weights),
             # and port can be overridden by validator without organic scoring.
-            axon.port = int(os.environ.get("VAL_PORT", 42174))
+            if (val_port := os.environ.get("VAL_PORT")) is not None:
+                axon.port = int(val_port)
             axons = [axon]
 
         else:

@@ -64,6 +64,12 @@ PORT=<API_PORT> VAL_PORT=<VALIDATOR_AXON_PORT> EXPECTED_ACCESS_KEY=<ACCESS_KEY> 
 
 The command ensures that no GPU memory is used by the server, and that the large models used by the incentive mechanism are not loaded.
 
+Environment variables:
+
+- EXPECTED_ACCESS_KEY: API access key.
+- PORT: API port.
+- VAL_PORT: Validator axon port, optional. Needed if there are multiple validators running the same hotkey on the network.
+
 > Note: This command is subject to change as the project evolves.
 
 We recommend that you run the server using a process manager like PM2. This will ensure that the server is always running and will restart if it crashes. 

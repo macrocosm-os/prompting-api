@@ -59,17 +59,23 @@ source env/bin/activate
 Run an API server on subnet 1 with the following command:
 
 ```bash
-EXPECTED_ACCESS_KEY=<ACCESS_KEY> python server.py --wallet.name <WALLET_NAME> --wallet.hotkey <WALLET_HOTKEY> --netuid <NETUID> --neuron.model_id mock --neuron.tasks math --neuron.task_p 1 --neuron.device cpu
+PORT=<API_PORT> VAL_PORT=<VALIDATOR_AXON_PORT> EXPECTED_ACCESS_KEY=<ACCESS_KEY> python server.py --wallet.name <WALLET_NAME> --wallet.hotkey <WALLET_HOTKEY> --netuid <NETUID> --neuron.model_id mock --neuron.tasks math --neuron.task_p 1 --neuron.device cpu --neuron.axon_off
 ```
 
 The command ensures that no GPU memory is used by the server, and that the large models used by the incentive mechanism are not loaded.
+
+Environment variables:
+
+- EXPECTED_ACCESS_KEY: API access key.
+- PORT: API port.
+- VAL_PORT: Validator axon port, optional. Needed if there are multiple validators running the same hotkey on the network.
 
 > Note: This command is subject to change as the project evolves.
 
 We recommend that you run the server using a process manager like PM2. This will ensure that the server is always running and will restart if it crashes. 
 
 ```bash
-EXPECTED_ACCESS_KEY=<ACCESS_KEY> pm2 start server.py --interpreter python3 --name sn1-api -- --wallet.name <WALLET_NAME> --wallet.hotkey <WALLET_HOTKEY> --netuid <NETUID> --neuron.model_id mock --neuron.tasks math --neuron.task_p 1 --neuron.device cpu
+PORT=<API_PORT> VAL_PORT=<VALIDATOR_AXON_PORT> pm2 start server.py --interpreter python3 --name sn1-api -- --wallet.name <WALLET_NAME> --wallet.hotkey <WALLET_HOTKEY> --netuid <NETUID> --neuron.model_id mock --neuron.tasks math --neuron.task_p 1 --neuron.device cpu --neuron.axon_off
 ```
 
 ### Run with Docker
@@ -82,7 +88,7 @@ after the image is build properly
 you can start it with command:
 
 ```
-docker run -e EXPECTED_ACCESS_KEY=<ACCESS_KEY> prompting-api:latest --interpreter python3 --name sn1-api -- --wallet.name <WALLET_NAME> --wallet.hotkey <WALLET_HOTKEY> --netuid <NETUID> --neuron.model_id mock --neuron.tasks math --neuron.task_p 1 --neuron.device cpu
+docker run -e EXPECTED_ACCESS_KEY=<ACCESS_KEY> prompting-api:latest --interpreter python3 --name sn1-api -- --wallet.name <WALLET_NAME> --wallet.hotkey <WALLET_HOTKEY> --netuid <NETUID> --neuron.model_id mock --neuron.tasks math --neuron.task_p 1 --neuron.device cpu --neuron.axon_off
 ```
 
 ## API Usage

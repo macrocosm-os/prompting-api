@@ -109,7 +109,6 @@ class ValidatorStreamManager(StreamManager):
                         accumulated_response_len[miner_uid] += len(response_chunk)
                         accumulated_chunks_timings[miner_uid].append(time.perf_counter() - start_time)
 
-
                         if client_response is None:
                             client_response = StreamResponse(status=200, reason="OK")
                             client_response.headers["Content-Type"] = "application/json"

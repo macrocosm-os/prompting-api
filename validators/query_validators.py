@@ -75,10 +75,14 @@ class ValidatorStreamManager(StreamManager):
         """Process a single response asynchronously."""
         synapse = None
         accumulated_chunks = defaultdict(list)
+        accumulated_response_len = defaultdict(int)
         accumulated_chunks_timings = defaultdict(list)
         sequence_number = defaultdict(int)
         uid_to_chunks = defaultdict(list)
         client_response: Optional[StreamResponse] = None
+        chunks_to_wait: int = 1
+        miners_to_wait: int = 2
+        responses = defaultdict(list)
 
         start_time = time.perf_counter()
         try:
@@ -94,15 +98,22 @@ class ValidatorStreamManager(StreamManager):
                     for data in streams:
                         miner_uid = data.get("uid")
                         response_chunk = data.get("chunk")
-                        if self._chosen_uid is not None and miner_uid != self._chosen_uid:
-                            continue
 
-                        if self._chosen_uid is None and miner_uid is not None and response_chunk is not None:
-                            self._chosen_uid = miner_uid
+                        if self._chosen_uid is not None and miner_uid != self._chosen_uid:
+                            # Miner UID is already chosen, skip the rest.
+                            # print(f"Skipping, since Miner UID is chosen: {self._chosen_uid}")
+                            continue
 
                         sequence_number[miner_uid] += 1
                         accumulated_chunks[miner_uid].append(response_chunk)
+                        accumulated_response_len[miner_uid] += len(response_chunk)
                         accumulated_chunks_timings[miner_uid].append(time.perf_counter() - start_time)
+
+
+                        if client_response is None:
+                            client_response = StreamResponse(status=200, reason="OK")
+                            client_response.headers["Content-Type"] = "application/json"
+                            await client_response.prepare(request)
 
                         response_state = StreamChunk(
                             delta=response_chunk,
@@ -113,20 +124,38 @@ class ValidatorStreamManager(StreamManager):
                             sequence_number=sequence_number[miner_uid],
                             selected_uid=miner_uid,
                         )
+                        responses[miner_uid].append(response_state)
+                        if (
+                            len(responses[miner_uid]) >= chunks_to_wait
+                            and accumulated_response_len[miner_uid] > 0
+                            and len(responses) >= miners_to_wait
+                        ):
+                            if self._chosen_uid is None and miner_uid is not None:
+                                # Choose current miner UID to stream.
+                                self._chosen_uid = max(accumulated_response_len, key=accumulated_response_len.get)
+                                # print(f"Awailable responses len: {accumulated_response_len}")
+                                # print(f"Miner UID is chosen: {self._chosen_uid}")
 
-                        if client_response is None:
-                            client_response = StreamResponse(status=200, reason="OK")
-                            client_response.headers["Content-Type"] = "application/json"
-                            await client_response.prepare(request)
-                        await client_response.write(response_state.encode("utf-8"))
+                            # Stream chunk.
+                            while len(responses[miner_uid]) > 0:
+                                response = responses[miner_uid].pop(0)
+                                await client_response.write(response.encode("utf-8"))
+
                 elif chunk is not None and isinstance(chunk, StreamPromptingSynapse):
                     if self._chosen_uid is None:
-                        continue
+                        # If no UID met criteria, stream the longest completion.
+                        self._chosen_uid = max(accumulated_response_len, key=accumulated_response_len.get)
+                        # print(f"Available responses len: {accumulated_response_len}")
+                        # print(f"Longest: {accumulated_response_len[self._chosen_uid]}. UID: {self._chosen_uid}")
+                        while len(responses[self._chosen_uid]) > 0:
+                            response = responses[self._chosen_uid].pop(0)
+                            await client_response.write(response.encode("utf-8"))
                     synapse = chunk
                     if len(accumulated_chunks[self._chosen_uid]) == 0:
                         accumulated_chunks[self._chosen_uid].append(synapse.completion)
                         accumulated_chunks_timings[self._chosen_uid].append(time.perf_counter() - start_time)
 
+                    # Stream completed.
                     final_response = StreamChunk(
                         delta="",
                         finish_reason="completed",

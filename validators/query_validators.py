@@ -16,19 +16,21 @@ from .streamer import StreamChunk
 
 
 class ValidatorStreamManager(StreamManager):
-    def __init__(self):
+    def __init__(self, chunks_to_wait: int = 1, miners_to_wait: int = 2):
         super().__init__()
         self._chosen_uid: Optional[int] = None
         self.client_response: Optional[StreamResponse] = None
+        self._chunks_to_wait = chunks_to_wait
+        self._miners_to_wait = miners_to_wait
 
     def _parse_stream(self, json_object: str, uid_to_chunks: dict[int, str]) -> list[Optional[dict[str, Any]]]:
+        """Parse the JSON object and populate uid_to_chunks with the data."""
         if "}{" in json_object:
-            # If multiple chunks arrived in one sample.
+            # TODO: Investigate why some of the chunks may arrive in one sample.
             json_objects = json_object.split("}{")
             json_objects = [obj if obj.startswith("{") else "{" + obj for obj in json_objects]
             json_objects = [obj if obj.endswith("}") else obj + "}" for obj in json_objects]
 
-            # Parse each JSON object.
             return [self.try_parse_json(obj, uid_to_chunks) for obj in json_objects]
         else:
             return [self.try_parse_json(json_object, uid_to_chunks)]
@@ -67,11 +69,7 @@ class ValidatorStreamManager(StreamManager):
         processed_stream_results = await asyncio.gather(*process_stream_tasks, return_exceptions=True)
         return processed_stream_results[0]
 
-    async def _stream_chunk(
-        self,
-        request: Request,
-        response: StreamChunk,
-    ):
+    async def _stream_chunk(self, request: Request, response: StreamChunk):
         if self.client_response is None:
             self.client_response = StreamResponse(status=200, reason="OK")
             self.client_response.headers["Content-Type"] = "application/json"
@@ -102,8 +100,6 @@ class ValidatorStreamManager(StreamManager):
         accumulated_chunks_timings = defaultdict(list)
         sequence_number = defaultdict(int)
         uid_to_chunks = defaultdict(list)
-        chunks_to_wait: int = 1
-        miners_to_wait: int = 2
         responses = defaultdict(list)
 
         start_time = time.perf_counter()
@@ -142,9 +138,9 @@ class ValidatorStreamManager(StreamManager):
                         )
                         responses[miner_uid].append(response_state)
                         if (
-                            len(responses[miner_uid]) >= chunks_to_wait
+                            len(responses[miner_uid]) >= self._chunks_to_wait
                             and accumulated_response_len[miner_uid] > 0
-                            and len(responses) >= miners_to_wait
+                            and len(responses) >= self._miners_to_wait
                         ):
                             if self._chosen_uid is None and miner_uid is not None:
                                 # Choose current miner UID to stream.

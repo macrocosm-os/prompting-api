@@ -19,6 +19,7 @@ class ValidatorStreamManager(StreamManager):
     def __init__(self):
         super().__init__()
         self._chosen_uid: Optional[int] = None
+        self.client_response: Optional[StreamResponse] = None
 
     def _parse_stream(self, json_object: str, uid_to_chunks: dict[int, str]) -> list[Optional[dict[str, Any]]]:
         if "}{" in json_object:
@@ -66,6 +67,28 @@ class ValidatorStreamManager(StreamManager):
         processed_stream_results = await asyncio.gather(*process_stream_tasks, return_exceptions=True)
         return processed_stream_results[0]
 
+    async def _stream_chunk(
+        self,
+        request: Request,
+        response: StreamChunk,
+    ):
+        if self.client_response is None:
+            self.client_response = StreamResponse(status=200, reason="OK")
+            self.client_response.headers["Content-Type"] = "application/json"
+            await self.client_response.prepare(request)
+
+        bt.logging.info(f"Streaming: {response}")
+        await self.client_response.write(response.encode("utf-8"))
+        await self.client_response.drain()
+    
+    async def _stream_cached_responses(self, request: Request, responses: list[StreamChunk]):
+        while len(responses) > 0:
+            response = responses.pop(0)
+            await self._stream_chunk(request, response)
+            # TODO: Investigate why some of the chunks are concatenated when they streamed at the same time:
+            # either front-end issue, or aiohttp.
+            await asyncio.sleep(0.001)
+
     async def _process_stream(
         self,
         request: Request,
@@ -79,7 +102,6 @@ class ValidatorStreamManager(StreamManager):
         accumulated_chunks_timings = defaultdict(list)
         sequence_number = defaultdict(int)
         uid_to_chunks = defaultdict(list)
-        client_response: Optional[StreamResponse] = None
         chunks_to_wait: int = 1
         miners_to_wait: int = 2
         responses = defaultdict(list)
@@ -101,18 +123,13 @@ class ValidatorStreamManager(StreamManager):
 
                         if self._chosen_uid is not None and miner_uid != self._chosen_uid:
                             # Miner UID is already chosen, skip the rest.
-                            # print(f"Skipping, since Miner UID is chosen: {self._chosen_uid}")
+                            bt.logging.info(f"Skipping {miner_uid}, since Miner UID is chosen: {self._chosen_uid}")
                             continue
 
                         sequence_number[miner_uid] += 1
                         accumulated_chunks[miner_uid].append(response_chunk)
                         accumulated_response_len[miner_uid] += len(response_chunk)
                         accumulated_chunks_timings[miner_uid].append(time.perf_counter() - start_time)
-
-                        if client_response is None:
-                            client_response = StreamResponse(status=200, reason="OK")
-                            client_response.headers["Content-Type"] = "application/json"
-                            await client_response.prepare(request)
 
                         response_state = StreamChunk(
                             delta=response_chunk,
@@ -132,23 +149,20 @@ class ValidatorStreamManager(StreamManager):
                             if self._chosen_uid is None and miner_uid is not None:
                                 # Choose current miner UID to stream.
                                 self._chosen_uid = max(accumulated_response_len, key=accumulated_response_len.get)
-                                # print(f"Awailable responses len: {accumulated_response_len}")
-                                # print(f"Miner UID is chosen: {self._chosen_uid}")
+                                bt.logging.info(f"Available responses len: {accumulated_response_len}")
+                                bt.logging.info(f"Miner UID is chosen: {self._chosen_uid}")
 
-                            # Stream chunk.
-                            while len(responses[miner_uid]) > 0:
-                                response = responses[miner_uid].pop(0)
-                                await client_response.write(response.encode("utf-8"))
+                            # Stream chunks.
+                            self._stream_cached_responses(request, responses[miner_uid])
 
                 elif chunk is not None and isinstance(chunk, StreamPromptingSynapse):
                     if self._chosen_uid is None:
                         # If no UID met criteria, stream the longest completion.
                         self._chosen_uid = max(accumulated_response_len, key=accumulated_response_len.get)
-                        # print(f"Available responses len: {accumulated_response_len}")
-                        # print(f"Longest: {accumulated_response_len[self._chosen_uid]}. UID: {self._chosen_uid}")
-                        while len(responses[self._chosen_uid]) > 0:
-                            response = responses[self._chosen_uid].pop(0)
-                            await client_response.write(response.encode("utf-8"))
+                        bt.logging.info(f"Available responses len: {accumulated_response_len}")
+                        bt.logging.info(f"Longest: {accumulated_response_len[self._chosen_uid]}. UID: {self._chosen_uid}")
+                        # Stream chunks if they were not streamed during the processing loop.
+                        self._stream_cached_responses(request, responses[self._chosen_uid])
                     synapse = chunk
                     if len(accumulated_chunks[self._chosen_uid]) == 0:
                         accumulated_chunks[self._chosen_uid].append(synapse.completion)
@@ -166,7 +180,7 @@ class ValidatorStreamManager(StreamManager):
                     )
 
                     if synapse.completion:
-                        await client_response.write(final_response.encode("utf-8"))
+                        await self._stream_chunk(request, final_response)
                 else:
                     raise ValueError(f"Stream did not return a valid synapse, miner UID {miner_uid}")
         except Exception as e:
@@ -175,4 +189,6 @@ class ValidatorStreamManager(StreamManager):
                 f"Error occuring during streaming responses for miner UID {miner_uid}: {e}\n{traceback_details}"
             )
         finally:
-            return client_response
+            if self.client_response is not None:
+                await self.client_response.write_eof()  # Ensure the response is finalized
+            return self.client_response

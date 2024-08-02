@@ -1,14 +1,14 @@
 import asyncio
 import datetime
 import json
-from collections import defaultdict
 import time
 import traceback
+from collections import defaultdict
 from typing import Any, AsyncIterator, Awaitable, Optional
 
 import bittensor as bt
-from aiohttp.web_response import StreamResponse
 from aiohttp.web import Request
+from aiohttp.web_response import StreamResponse
 from prompting.protocol import StreamPromptingSynapse
 
 from .stream_manager import StreamManager
@@ -17,6 +17,13 @@ from .streamer import StreamChunk
 
 class ValidatorStreamManager(StreamManager):
     def __init__(self, chunks_to_wait: int = 1, miners_to_wait: int = 2):
+        """Stream validator response, which is based on the miners streamed responses.
+        
+        Get the miner responses and streams the longest completion miner UID.
+        """
+        # TODO: Move UID chosing logic to front-end, and stream all responses from all the miners to front-end.
+        # TODO: Make SN1 organic query to get the top incentive UIDs, e.g 1 top incentive and 4 random miners.
+        # TODO: Front-end will always render top incentive miner.
         super().__init__()
         self._chosen_uid: Optional[int] = None
         self.client_response: Optional[StreamResponse] = None
@@ -49,23 +56,21 @@ class ValidatorStreamManager(StreamManager):
         self,
         request: Request,
         streams_responses: list[AsyncIterator],
-        stream_uids: list[int],
+        stream_uids: Optional[list[int]],
     ) -> Optional[StreamResponse]:
         """Process multiple asynchronous streams, stream from first non-empty miner's chunk.
 
         Args:
-            request (Request): The web request object.
-            streams_responses (List[AsyncIterator]): A list of asynchronous iterators representing the streams.
-            stream_uids (List[int]): A list of unique IDs for the streams.
+            request: The web request object.
+            streams_responses: A list of asynchronous iterators representing the streams.
+            stream_uids: A list of unique IDs for the streams.
 
         Returns:
-            ProcessedStreamResponse: The response from the selected stream.
+            StreamResponse: The response from the selected stream.
         """
-        process_stream_tasks = [
-            self._process_stream(request, uid, response)
-            for uid, response in zip(stream_uids, streams_responses)
-        ]
-
+        # streams_responses is a list with a single element, to make it compatible with StreamManager,
+        # that streams miner's responses directly, without querying the validator.
+        process_stream_tasks = [self._process_stream(request, response) for response in zip(streams_responses)]
         processed_stream_results = await asyncio.gather(*process_stream_tasks, return_exceptions=True)
         return processed_stream_results[0]
 
@@ -83,16 +88,10 @@ class ValidatorStreamManager(StreamManager):
         while len(responses) > 0:
             response = responses.pop(0)
             await self._stream_chunk(request, response)
-            # TODO: Investigate why some of the chunks are concatenated when they streamed at the same time:
-            # either front-end issue, or aiohttp.
+            # TODO: Investigate why some of the chunks are concatenated when they streamed at the same time.
             await asyncio.sleep(0.001)
 
-    async def _process_stream(
-        self,
-        request: Request,
-        uid: int,
-        async_iterator: list[Awaitable],
-    ) -> Optional[StreamResponse]:
+    async def _process_stream(self, request: Request, async_iterator: list[Awaitable]) -> Optional[StreamResponse]:
         """Process a single response asynchronously."""
         synapse = None
         accumulated_chunks = defaultdict(list)
@@ -114,8 +113,11 @@ class ValidatorStreamManager(StreamManager):
                     # Take the longest completion first.
                     streams = sorted(streams, key=lambda x: len(x["chunk"]), reverse=True)
                     for data in streams:
-                        miner_uid = data.get("uid")
-                        response_chunk = data.get("chunk")
+                        if (miner_uid := data.get("uid")) is None:
+                            continue
+
+                        if (response_chunk := data.get("chunk")) is None:
+                            continue
 
                         if self._chosen_uid is not None and miner_uid != self._chosen_uid:
                             # Miner UID is already chosen, skip the rest.
@@ -137,26 +139,24 @@ class ValidatorStreamManager(StreamManager):
                             selected_uid=miner_uid,
                         )
                         responses[miner_uid].append(response_state)
-                        if (
-                            len(responses[miner_uid]) >= self._chunks_to_wait
-                            and accumulated_response_len[miner_uid] > 0
-                            and len(responses) >= self._miners_to_wait
-                        ):
-                            if self._chosen_uid is None and miner_uid is not None:
-                                # Choose current miner UID to stream.
+                        if len(responses[miner_uid]) >= self._chunks_to_wait and len(responses) >= self._miners_to_wait:
+                            # If the number of chunks and miners met the criteria,
+                            # choose the miner UID to start streaming.
+                            if self._chosen_uid is None:
                                 self._chosen_uid = max(accumulated_response_len, key=accumulated_response_len.get)
                                 bt.logging.info(f"Available responses len: {accumulated_response_len}")
                                 bt.logging.info(f"Miner UID is chosen: {self._chosen_uid}")
 
                             # Stream chunks.
-                            self._stream_cached_responses(request, responses[miner_uid])
+                            self._stream_cached_responses(request, responses[self._chosen_uid])
 
                 elif chunk is not None and isinstance(chunk, StreamPromptingSynapse):
                     if self._chosen_uid is None:
                         # If no UID met criteria, stream the longest completion.
                         self._chosen_uid = max(accumulated_response_len, key=accumulated_response_len.get)
-                        bt.logging.info(f"Available responses len: {accumulated_response_len}")
-                        bt.logging.info(f"Longest: {accumulated_response_len[self._chosen_uid]}. UID: {self._chosen_uid}")
+                        bt.logging.info(
+                            f"UID: {self._chosen_uid}; length: {accumulated_response_len[self._chosen_uid]}"
+                        )
                         # Stream chunks if they were not streamed during the processing loop.
                         self._stream_cached_responses(request, responses[self._chosen_uid])
                     synapse = chunk
@@ -186,5 +186,5 @@ class ValidatorStreamManager(StreamManager):
             )
         finally:
             if self.client_response is not None:
-                await self.client_response.write_eof()  # Ensure the response is finalized
+                await self.client_response.write_eof()
             return self.client_response

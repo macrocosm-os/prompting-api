@@ -16,10 +16,13 @@ from .streamer import StreamChunk
 
 
 class ValidatorStreamManager(StreamManager):
-    def __init__(self, chunks_to_wait: int = 1, miners_to_wait: int = 2):
+    def __init__(self, chunks_to_wait: int = 2, miners_to_wait: int = 2):
         """Stream validator response, which is based on the miners streamed responses.
         
         Get the miner responses and streams the longest completion miner UID.
+        Args:
+            chunks_to_wait: The number of chunks to wait before starting to stream.
+            miners_to_wait: The number of miners to wait before starting to stream.
         """
         # TODO: Move UID chosing logic to front-end, and stream all responses from all the miners to front-end.
         # TODO: Make SN1 organic query to get the top incentive UIDs, e.g 1 top incentive and 4 random miners.

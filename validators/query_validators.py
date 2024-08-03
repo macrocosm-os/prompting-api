@@ -16,7 +16,7 @@ from .streamer import StreamChunk
 
 
 class ValidatorStreamManager(StreamManager):
-    def __init__(self, chunks_to_wait: int = 2, miners_to_wait: int = 2):
+    def __init__(self, chunks_to_wait: int = 1, miners_to_wait: int = 2):
         """Stream validator response, which is based on the miners streamed responses.
         
         Get the miner responses and streams the longest completion miner UID.
@@ -85,15 +85,13 @@ class ValidatorStreamManager(StreamManager):
 
         bt.logging.info(f"Streaming: {response}")
         await self.client_response.write(response.encode("utf-8"))
-        await self.client_response.write("".encode("utf-8"))
-        # await self.client_response.drain()
+        await self.client_response.drain()
     
     async def _stream_cached_responses(self, request: Request, responses: list[StreamChunk]):
         while len(responses) > 0:
             response = responses.pop(0)
-            await self._stream_chunk(request, response)
             # TODO: Investigate why some of the chunks are concatenated when they streamed at the same time.
-            await asyncio.sleep(0.01)
+            await self._stream_chunk(request, response)
 
     async def _process_stream(self, request: Request, async_iterator: AsyncIterator) -> Optional[StreamResponse]:
         """Process a single response asynchronously."""
@@ -114,8 +112,6 @@ class ValidatorStreamManager(StreamManager):
                         continue
 
                     streams = self._parse_stream(chunk, uid_to_chunks)
-                    # Take the longest completion first.
-                    streams = sorted(streams, key=lambda x: len(x["chunk"]), reverse=True)
                     for data in streams:
                         if (miner_uid := data.get("uid")) is None:
                             continue
@@ -142,7 +138,12 @@ class ValidatorStreamManager(StreamManager):
                             sequence_number=sequence_number[miner_uid],
                             selected_uid=miner_uid,
                         )
-                        responses[miner_uid].append(response_state)
+
+                        if self._chosen_uid is None:
+                            responses[miner_uid].append(response_state)
+                        elif miner_uid == self._chosen_uid:
+                            await self._stream_chunk(request, response_state)
+
                         if len(responses[miner_uid]) >= self._chunks_to_wait and len(responses) >= self._miners_to_wait:
                             # If the number of chunks and miners met the criteria,
                             # choose the miner UID to start streaming.

@@ -139,9 +139,7 @@ def load_downloaded_runs(time, cols=KEYS):
         df_long = frame[cols + list_cols + found_extra_cols].explode(list_cols)
 
         prog_msg = f"Downloading data {i/len(paths)*100:.0f}%"
-        progress.progress(
-            i / len(paths), text=f"{prog_msg}... **downloading** `{run_id}`"
-        )
+        progress.progress(i / len(paths), text=f"{prog_msg}... **downloading** `{run_id}`")
 
         df_all = pd.concat([df_all, df_long.assign(run_id=run_id)], ignore_index=True)
 
@@ -187,9 +185,7 @@ def build_data(timestamp=None, path=BASE_PATH, min_steps=MIN_STEPS, use_cache=Tr
         if num_steps < min_steps:
             continue
         n_events += num_steps
-        prog_msg = (
-            f"Loading data {i/len(runs)*100:.0f}%, (total {n_events:,.0f} events)"
-        )
+        prog_msg = f"Loading data {i/len(runs)*100:.0f}%, (total {n_events:,.0f} events)"
         progress.progress(
             i / len(runs),
             text=f"{prog_msg}... **downloading** `{os.path.join(*run.path)}`",
@@ -200,10 +196,7 @@ def build_data(timestamp=None, path=BASE_PATH, min_steps=MIN_STEPS, use_cache=Tr
     progress.empty()
 
     df_new = pd.DataFrame(
-        [
-            {k: func(run) for k, func in EXTRACTORS.items()}
-            for run in tqdm.tqdm(run_data, total=len(run_data))
-        ]
+        [{k: func(run) for k, func in EXTRACTORS.items()} for run in tqdm.tqdm(run_data, total=len(run_data))]
     )
     df = pd.concat([df, df_new], ignore_index=True)
     df["duration"] = (df.last_event_at - df.created_at).round("s")
@@ -215,17 +208,13 @@ def build_data(timestamp=None, path=BASE_PATH, min_steps=MIN_STEPS, use_cache=Tr
 
     print(df.completions.apply(type).value_counts())
     # Assumes completions is in the frame
-    df["completions"] = df["completions"].apply(
-        lambda x: x if isinstance(x, list) else eval(x)
-    )
+    df["completions"] = df["completions"].apply(lambda x: x if isinstance(x, list) else eval(x))
 
     df["completion_words"] = df.completions.apply(
         lambda x: sum([len(xx.split()) for xx in x]) if isinstance(x, list) else 0
     )
     df["validator_words"] = df.apply(
-        lambda x: len(str(x.query).split())
-        + len(str(x.challenge).split())
-        + len(str(x.reference).split()),
+        lambda x: len(str(x.query).split()) + len(str(x.challenge).split()) + len(str(x.reference).split()),
         axis=1,
     )
 
@@ -236,12 +225,7 @@ def build_data(timestamp=None, path=BASE_PATH, min_steps=MIN_STEPS, use_cache=Tr
 
 @st.cache_data()
 def normalize_rewards(df, turn=0, percentile=0.98):
-    top_reward_stats = (
-        df.loc[df.turn == turn]
-        .astype({"rewards": float})
-        .groupby("task")
-        .rewards.quantile(percentile)
-    )
+    top_reward_stats = df.loc[df.turn == turn].astype({"rewards": float}).groupby("task").rewards.quantile(percentile)
 
     df["best_reward"] = df.task.map(top_reward_stats)
     df["normalized_rewards"] = df["rewards"].astype(float) / df["best_reward"]
@@ -265,9 +249,7 @@ def download_runs(time, df_vali):
 
         save_path = f"data/wandb/{row.run_id}.parquet"
         if os.path.exists(save_path):
-            pbar.set_description(
-                f">> Skipping {row.run_id!r} because file {save_path!r} already exists"
-            )
+            pbar.set_description(f">> Skipping {row.run_id!r} because file {save_path!r} already exists")
             continue
 
         try:
@@ -280,9 +262,7 @@ def download_runs(time, df_vali):
         except KeyboardInterrupt:
             break
         except Exception:
-            pbar.set_description(
-                f"- Something went wrong with {row.run_id!r}: {print_exc()}\n"
-            )
+            pbar.set_description(f"- Something went wrong with {row.run_id!r}: {print_exc()}\n")
 
     progress.empty()
 
@@ -296,9 +276,7 @@ def get_productivity(df_runs):
     total_validator_words = (
         df_runs.num_steps
         * df_runs.apply(
-            lambda x: len(str(x.query).split())
-            + len(str(x.challenge).split())
-            + len(str(x.reference).split()),
+            lambda x: len(str(x.query).split()) + len(str(x.challenge).split()) + len(str(x.reference).split()),
             axis=1,
         )
     ).sum()
@@ -524,15 +502,14 @@ def plot_reward_trends(
 
     # Add annotations based on relevant releases
     for idx, row in release_dates.iterrows():
-        if all(col not in row["tasks_affected"] for col in ["all", task]):
-            continue
+        line_color = "grey"
+        if task in row["tasks_affected"]:
+            line_color = "red"
+        elif "all" not in row["tasks_affected"]:
+            line_color = "blue"
         # TODO add annotation or something
         fig.add_vline(
-            row["release_date"],
-            line_color="red",
-            opacity=0.6,
-            line_dash="dot",
-            line_width=1,
+            row["release_date"], line_color=line_color, opacity=0.6, line_dash="dot", line_width=1
         )  # , annotation_text=str(v))
 
     return fig
@@ -563,19 +540,12 @@ def get_task_counts(df_runs, df_events):
         return my_versions[my_specs.index(match)]
 
     # Now estimate the distribution of tasks for each version using the event data
-    task_rate = (
-        df_events.groupby("version")
-        .task.value_counts(normalize=True)
-        .unstack()
-        .fillna(0)
-    )
+    task_rate = df_events.groupby("version").task.value_counts(normalize=True).unstack().fillna(0)
     # Impute missing versions
     for v in sorted(df_runs.version.unique()):
         if v not in task_rate.index:
             prev_version = get_closest_prev_version(v, list(task_rate.index))
-            print(
-                f"Imputing version {v} with task rate from closes previous version {prev_version!r}"
-            )
+            print(f"Imputing version {v} with task rate from closes previous version {prev_version!r}")
             task_rate.loc[v] = task_rate.loc[prev_version]
 
     # get esimated number of each task generated in every run using summary dataframe
@@ -609,9 +579,7 @@ def load_state_vars(username=USERNAME, percentile=0.95):
     df_runs_24h = df_runs.loc[runs_alive_24h_ago]
 
     # weight factor indicates the fraction of events that happened within the last 24 hour.
-    fraction = 1 - (yesterday - df_runs_24h.created_at) / (
-        pd.Timestamp.now() - df_runs_24h.created_at
-    )
+    fraction = 1 - (yesterday - df_runs_24h.created_at) / (pd.Timestamp.now() - df_runs_24h.created_at)
     df_runs_24h["fraction"] = fraction.clip(0, 1)
     df_runs_24h["num_steps"] *= fraction.clip(0, 1)
 
@@ -630,8 +598,5 @@ def load_state_vars(username=USERNAME, percentile=0.95):
 
 
 if __name__ == "__main__":
-    logger.info("Loading runs")
-    df = download_runs()
 
-    df.to_csv("test_wandb_data.csv", index=False)
-    # print(df)
+    pass

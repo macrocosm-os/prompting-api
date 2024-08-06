@@ -1,4 +1,4 @@
-git+https://github.com/macrocosm-os/prompting.git
+git+https://github.com/macrocosm-os/prompting.git@00d67a40732b831ac26c3bfc644b5ace7655f22b
 aiohttp
 deprecated
 aiohttp_apispec>=2.2.3

@@ -42,12 +42,15 @@ class S1ValidatorAPI(ValidatorAPI):
             # As of now we are querying only OTF validatior.
             uids = [self.validator.metagraph.hotkeys.index(self.validator.wallet.hotkey.ss58_address)]
             axon = self.validator.metagraph.axons[uids[0]]
-            # TODO: Remove port setting.
-            # Temporary hack to override port, until organic scoring is not in main branch.
+            # TODO: Remove port and ip setting.
+            # Temporary hack to override port and ip.
             # Currently, two OTF validators are running (one is not setting weights),
             # and port can be overridden by validator without organic scoring.
             if (val_port := os.environ.get("VAL_PORT")) is not None:
                 axon.port = int(val_port)
+            if (val_ip := os.environ.get("VAL_IP")) is not None:
+                axon.ip = val_ip
+
             axons = [axon]
 
         else:

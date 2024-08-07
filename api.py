@@ -1,5 +1,6 @@
-from fastapi import FastAPI, Request, Body
-from validators import S1ValidatorAPI
+from fastapi import FastAPI, Request, Body, Depends
+from fastapi.security import APIKeyHeader
+
 from loguru import logger
 from common.schemas import QueryChatRequest, StreamChunkResponse, StreamErrorResponse
 from common import utils
@@ -7,24 +8,24 @@ import uvicorn
 import settings
 import openai
 from common.middlewares import middleware
+from validators.neuron import Neuron
 
 client = openai.AsyncClient(api_key=settings.OPENAI_API_KEY)
 
 app = FastAPI(middleware=middleware)
-if not settings.TESTING:
-    validator_instance = S1ValidatorAPI()
+security = APIKeyHeader(name="api_key", auto_error=False)
+instance = Neuron(query_validators=False)
 
 
 @app.post(
     "/chat/",
-    # response_model=StreamChunkResponse,
     responses={400: {"model": StreamErrorResponse}},
 )
-async def chat(request: Request, query: QueryChatRequest = Body(...)):
+async def chat(request: Request, query: QueryChatRequest = Body(...), authorization: str = Depends(security)):
     """Chat endpoint for the validator"""
     try:
         query.request = request
-        return await validator_instance.query_validator(query)
+        return await instance.query_validator(query)
     except Exception as e:
         logger.exception(e)
 
@@ -34,7 +35,7 @@ async def chat(request: Request, query: QueryChatRequest = Body(...)):
     response_model=StreamChunkResponse,
     responses={400: {"model": StreamErrorResponse}},
 )
-async def echo_stream(request: Request, query: QueryChatRequest):
+async def echo_stream(request: Request, query: QueryChatRequest, authorization: str = Depends(security)):
     return await utils.echo_stream(request)
 
 
@@ -45,10 +46,7 @@ test_app = FastAPI(middleware=middleware)
 async def openai_chat(request: QueryChatRequest):
     """Chat endpoint for the validator"""
     response = await client.chat.completions.create(
-        messages=[
-            {"role": role, "content": message}
-            for role, message in zip(request.roles, request.messages)
-        ],
+        messages=[{"role": role, "content": message} for role, message in zip(request.roles, request.messages)],
         model="gpt-3.5-turbo",
         n=request.k,
     )

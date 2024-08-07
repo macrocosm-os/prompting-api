@@ -6,9 +6,10 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import AsyncIterator, Optional, List, Union
 from fastapi import Request
-from prompting.protocol import StreamPromptingSynapse
+from validators.protocol import StreamPromptingSynapse
 from fastapi.responses import StreamingResponse
 import bittensor as bt
+from loguru import logger
 
 
 class StreamChunk(BaseModel):
@@ -69,22 +70,20 @@ class AsyncResponseDataStreamer:
         # if self.lock_acquired:
         # await response.write(stream_chunk.encode("utf-8"))
         if not self.lock_acquired:
-            bt.logging.debug(
-                f"Stream of uid {stream_chunk.selected_uid} was not the first to return, skipping..."
-            )
+            logger.debug(f"Stream of uid {stream_chunk.selected_uid} was not the first to return, skipping...")
 
     async def stream(self, request: Request) -> ProcessedStreamResponse:
         try:
-            bt.logging.info("Starting stream processing...")
+            logger.info("Starting stream processing...")
             start_time = time.time()
             response: StreamingResponse = StreamingResponse(
                 self._stream_generator(request), media_type="application/json"
             )
             final_response: ProcessedStreamResponse = None
-            bt.logging.info(f"Response: {response}")
+            logger.info(f"Response: {response}")
 
             async for chunk in self.async_iterator:
-                bt.logging.info(f"Processing chunk: {chunk}")
+                logger.info(f"Processing chunk: {chunk}")
                 if isinstance(chunk, str):
                     if not chunk:
                         continue
@@ -96,12 +95,10 @@ class AsyncResponseDataStreamer:
 
                     async with self.lock:
                         self.lock_acquired = True
-                        await self.write_to_stream(
-                            response, new_response_state, self.lock
-                        )
+                        await self.write_to_stream(response, new_response_state, self.lock)
 
             if isinstance(chunk, StreamPromptingSynapse):
-                bt.logging.info("Chunk in StreamPromptingSynapse format, processing...")
+                logger.info("Chunk in StreamPromptingSynapse format, processing...")
                 if len(self.accumulated_chunks) == 0:
                     self.accumulated_chunks.append(chunk.completion)
                     self.accumulated_chunks_timings.append(time.time() - start_time)
@@ -112,7 +109,7 @@ class AsyncResponseDataStreamer:
                 final_response = self._create_chunk_response(synapse.completion)
 
                 if synapse.completion:
-                    bt.logging.info("Synapse completed...")
+                    logger.info("Synapse completed...")
                     async with self.lock:
                         self.lock_acquired = True
                         await self.write_to_stream(response, final_response, self.lock)
@@ -122,7 +119,7 @@ class AsyncResponseDataStreamer:
                 raise ValueError("Stream did not return a valid synapse.")
 
         except Exception as e:
-            bt.logging.error(
+            logger.error(
                 f"Encountered an error while processing stream for uid {self.selected_uid} get_stream_response:\n{traceback.format_exc()}"
             )
             error_response = self._create_error_response(str(e))
@@ -133,7 +130,7 @@ class AsyncResponseDataStreamer:
         finally:
             # if self.lock_acquired:
             #     await response.close()
-            bt.logging.info(f"FINAL RESPONSE: {final_response}")
+            logger.info(f"FINAL RESPONSE: {final_response}")
             return final_response
 
     async def _stream_generator(self, request: Request):

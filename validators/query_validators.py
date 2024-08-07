@@ -9,7 +9,7 @@ from typing import Any, AsyncIterator, Awaitable, Optional
 import bittensor as bt
 from aiohttp.web_response import StreamResponse
 from aiohttp.web import Request
-from prompting.protocol import StreamPromptingSynapse
+from validators.protocol import StreamPromptingSynapse
 
 from .stream_manager import StreamManager
 from .streamer import StreamChunk
@@ -59,8 +59,7 @@ class ValidatorStreamManager(StreamManager):
             ProcessedStreamResponse: The response from the selected stream.
         """
         process_stream_tasks = [
-            self._process_stream(request, uid, response)
-            for uid, response in zip(stream_uids, streams_responses)
+            self._process_stream(request, uid, response) for uid, response in zip(stream_uids, streams_responses)
         ]
 
         processed_stream_results = await asyncio.gather(*process_stream_tasks, return_exceptions=True)

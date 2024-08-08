@@ -9,7 +9,7 @@ from typing import Any, AsyncIterator, Awaitable, Optional
 import bittensor as bt
 from aiohttp.web_response import StreamResponse
 from aiohttp.web import Request
-from validators.protocol import StreamPromptingSynapse
+from .protocol import StreamPromptingSynapse
 
 from .stream_manager import StreamManager
 from .streamer import StreamChunk

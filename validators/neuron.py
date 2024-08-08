@@ -1,14 +1,13 @@
 import os
 
 import bittensor as bt
-from validators.protocol import StreamPromptingSynapse
 from common.schemas import QueryChatRequest
 from fastapi.responses import StreamingResponse
 
+from .protocol import StreamPromptingSynapse
 from .query_validators import ValidatorStreamManager
 from .stream_manager import StreamManager
-
-from .validator_utils import get_top_incentive_uids, get_random_uids
+from .uid_utils import get_top_incentive_uids, get_random_uids
 
 from loguru import logger
 import settings

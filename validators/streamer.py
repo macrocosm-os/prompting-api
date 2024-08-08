@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import AsyncIterator, Optional, List, Union
 from fastapi import Request
-from validators.protocol import StreamPromptingSynapse
+from .protocol import StreamPromptingSynapse
 from fastapi.responses import StreamingResponse
 import bittensor as bt
 from loguru import logger

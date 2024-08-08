@@ -6,7 +6,7 @@ from common.schemas import QueryChatRequest, StreamChunkResponse, StreamErrorRes
 from common import utils
 import uvicorn
 from common.middlewares import middleware
-from validators.neuron import Neuron
+from network.neuron import Neuron
 
 app = FastAPI(middleware=middleware)
 security = APIKeyHeader(name="api_key", auto_error=False)

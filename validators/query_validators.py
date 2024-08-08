@@ -14,6 +14,8 @@ from validators.protocol import StreamPromptingSynapse
 from .stream_manager import StreamManager
 from .streamer import StreamChunk
 
+from loguru import logger
+
 
 class ValidatorStreamManager(StreamManager):
     def __init__(self):
@@ -39,7 +41,7 @@ class ValidatorStreamManager(StreamManager):
             uid_to_chunks[data["uid"]].append(data["chunk"])
             return data
         except json.decoder.JSONDecodeError as e:
-            bt.logging.error(f"An error occured when trying to parse JSON chunk: {e}")
+            logger.error(f"An error occured when trying to parse JSON chunk: {e}")
         return None
 
     async def process_streams(
@@ -79,6 +81,7 @@ class ValidatorStreamManager(StreamManager):
         uid_to_chunks = defaultdict(list)
         client_response: Optional[StreamResponse] = None
 
+        logger.info(f"Starting to process stream responses for uid {uid}")
         start_time = time.perf_counter()
         try:
             synapse = None
@@ -142,7 +145,7 @@ class ValidatorStreamManager(StreamManager):
                     raise ValueError(f"Stream did not return a valid synapse, miner UID {miner_uid}")
         except Exception as e:
             traceback_details = traceback.format_exc()
-            bt.logging.error(
+            logger.error(
                 f"Error occuring during streaming responses for miner UID {miner_uid}: {e}\n{traceback_details}"
             )
         finally:

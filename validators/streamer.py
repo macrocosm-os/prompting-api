@@ -115,13 +115,15 @@ class AsyncResponseDataStreamer:
                         await self.write_to_stream(response, final_response, self.lock)
                 else:
                     raise ValueError("Stream returned an empty synapse.")
+
             else:
                 raise ValueError("Stream did not return a valid synapse.")
 
         except Exception as e:
             logger.error(
-                f"Encountered an error while processing stream for uid {self.selected_uid} get_stream_response:\n{traceback.format_exc()}"
+                f"Encountered an error while processing stream for uid {self.selected_uid} get_stream_response: {e}"
             )
+            logger.trace(traceback.format_exc())
             error_response = self._create_error_response(str(e))
             final_response = error_response
 

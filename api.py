@@ -1,12 +1,13 @@
+import uvicorn
 from fastapi import FastAPI, Request, Body, Depends
 from fastapi.security import APIKeyHeader
 
+from network.neuron import Neuron
 from loguru import logger
+
 from common.schemas import QueryChatRequest, StreamChunkResponse, StreamErrorResponse
 from common import utils
-import uvicorn
 from common.middlewares import middleware
-from network.neuron import Neuron
 
 app = FastAPI(middleware=middleware)
 security = APIKeyHeader(name="api_key", auto_error=False)
@@ -49,4 +50,4 @@ if __name__ == "__main__":
     #         "api:test_app", host="0.0.0.0", port=8000, loop="asyncio", reload=True
     #     )
     # else:
-    uvicorn.run("api:app", host="0.0.0.0", port=8000, loop="asyncio", reload=True)
+    uvicorn.run("api:app", host="0.0.0.0", port=8001, loop="asyncio", reload=True)

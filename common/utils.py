@@ -1,15 +1,11 @@
 import re
 import asyncio
 
-# import bittensor as bt
 from fastapi import Request
 from fastapi.responses import StreamingResponse
-import asyncio
-from collections import Counter
-
-# from prompting.rewards import DateRewardModel, FloatDiffModel
-from validators.streamer import AsyncResponseDataStreamer
 from loguru import logger
+
+from network.streamer import AsyncResponseDataStreamer
 
 shared_lock = asyncio.Lock()
 

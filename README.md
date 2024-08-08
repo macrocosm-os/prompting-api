@@ -1,14 +1,9 @@
 
 <picture>
     <source srcset="./assets/macrocosmos-white.png"  media="(prefers-color-scheme: dark)">
-    <img src="assets/macrocosmos-white.png">
-</picture>
-
-<picture>
     <source srcset="./assets/macrocosmos-black.png"  media="(prefers-color-scheme: light)">
-    <img src="assets/macrocosmos-black.png">
+    <img src="macrocosmos-black.png">
 </picture>
-
 
 <br/>
 <br/>

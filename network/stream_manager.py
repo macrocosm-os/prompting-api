@@ -4,12 +4,7 @@ import datetime
 import json
 from collections import defaultdict
 import time
-import traceback
-from typing import Any, AsyncIterator, Awaitable, List, Optional
-
-import bittensor as bt
-from fastapi.responses import StreamingResponse
-from fastapi import Request, HTTPException
+from typing import AsyncIterator, Optional
 
 from common.schemas import QueryChatRequest
 from .protocol import StreamPromptingSynapse
@@ -53,14 +48,10 @@ class StreamManager:
                                 yield processed_chunk
                         elif isinstance(raw_chunk, StreamPromptingSynapse):
                             # This is the last chunk of the stream
-                            last_chunk = self.process_last_chunk("completed", miner_uid, validator_uid)
-                            yield last_chunk
-                        else:
-                            raise ValueError(f"Stream did not return a valid synapse, chunk: {raw_chunk}")
+                            yield self.generate_last_chunk("completed", miner_uid, validator_uid)
         except asyncio.TimeoutError:
             logger.error(f"Stream timed out after {self.request.timeout} seconds")
-            last_chunk = self.process_last_chunk("timed out", miner_uid, validator_uid)
-            yield last_chunk
+            yield self.generate_last_chunk("timed out", miner_uid, validator_uid)
 
     def split_chunks(self, raw_chunk: str) -> list[str]:
         delm = ">>|break|<<"
@@ -68,24 +59,24 @@ class StreamManager:
 
     def process_chunk(self, chunk: str, miner_uid: int, validator_uid: int) -> Optional[StreamChunk]:
         logger.debug(f"Processing chunk: {chunk}")
+        chunk_delta = chunk
+
         if miner_uid == -1:
-            # This is a validator response
+            # This is from querying validators and requires JSON parsing
+            # miners don't require this since the chunk is just the delta
             try:
                 json_object = json.loads(chunk)
             except json.decoder.JSONDecodeError as e:
                 logger.error(f"The following error occured when trying to parse JSON chunk '{chunk}': {e}")
                 return
 
-            chunk_data = json_object.get("chunk")
+            chunk_delta = json_object.get("chunk")
             miner_uid = json_object.get("uid", miner_uid)
 
-            if chunk_data is None:
+            if chunk_delta is None:
                 message = json_object.get("message")
                 logger.error(f"Chunk has no data.  Returning message: {message}")
-                return self.process_last_chunk(message, miner_uid, validator_uid)
-        else:
-            # This is a miner response
-            chunk_data = chunk
+                return self.generate_last_chunk(message, miner_uid, validator_uid)
 
         # Check if we should stream this response
         if self.request.k > len(self.selected_miners):
@@ -96,12 +87,12 @@ class StreamManager:
             logger.debug(f"Skipping miner {miner_uid}")
             return
 
-        self.accumulated_chunks[miner_uid].append(chunk_data)
+        self.accumulated_chunks[miner_uid].append(chunk_delta)
         self.accumulated_timings[miner_uid].append(time.perf_counter() - self.start_time)
         sequence_number = len(self.accumulated_chunks[miner_uid])
 
         return StreamChunk(
-            delta=chunk_data,
+            delta=chunk_delta,
             finish_reason=None,
             accumulated_chunks=self.accumulated_chunks[miner_uid],
             accumulated_timings=self.accumulated_timings[miner_uid],
@@ -111,7 +102,7 @@ class StreamManager:
             validator_uid=validator_uid,
         )
 
-    def process_last_chunk(self, finish_reason: str, miner_uid: int, validator_uid: int) -> StreamChunk:
+    def generate_last_chunk(self, finish_reason: str, miner_uid: int, validator_uid: int) -> StreamChunk:
         if len(self.selected_miners) < self.request.k:
             logger.warning(
                 f"Only {len(self.selected_miners)} miners responded, less than the {self.request.k} requested"

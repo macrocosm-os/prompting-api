@@ -5,7 +5,7 @@ from fastapi import Request
 from fastapi.responses import StreamingResponse
 from loguru import logger
 
-from network.streamer import AsyncResponseDataStreamer
+# from network.streamer import AsyncResponseDataStreamer
 
 shared_lock = asyncio.Lock()
 
@@ -151,6 +151,7 @@ async def echo_stream(request: Request) -> StreamingResponse:
     message = "\n\n".join(request_data["messages"])
 
     echo_iterator = EchoAsyncIterator(message, k, delay=0.3)
-    streamer = AsyncResponseDataStreamer(echo_iterator, selected_uid=0, lock=shared_lock, delay=0.3)
+    # streamer = AsyncResponseDataStreamer(echo_iterator, selected_uid=0, lock=shared_lock, delay=0.3)
+    streamer = None
 
     return await streamer.stream(request)

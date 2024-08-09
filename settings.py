@@ -2,6 +2,9 @@ from dotenv import load_dotenv
 from loguru import logger
 import os
 
+# We clear the environment to avoid any conflicts with changes in the .env file.
+os.environ.clear()
+
 if not load_dotenv():
     logger.warning("No .env file found, test endpoint will not be functional...")
 

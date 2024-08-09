@@ -16,15 +16,15 @@ instance = Neuron()
 
 @app.post(
     "/chat/",
-    responses={400: {"model": StreamErrorResponse}},
+    responses={
+        400: {"model": StreamErrorResponse},
+        504: {"description": "Stream timed out"},
+    },
 )
 async def chat(request: Request, query: QueryChatRequest = Body(...), authorization: str = Depends(security)):
     """Chat endpoint for the validator"""
-    try:
-        query.request = request
-        return await instance.query_network(query)
-    except Exception as e:
-        logger.exception(e)
+    query.request = request
+    return await instance.query_network(query)
 
 
 @app.post(
@@ -50,4 +50,4 @@ if __name__ == "__main__":
     #         "api:test_app", host="0.0.0.0", port=8000, loop="asyncio", reload=True
     #     )
     # else:
-    uvicorn.run("api:app", host="0.0.0.0", port=8001, loop="asyncio", reload=True)
+    uvicorn.run("api:app", host="0.0.0.0", port=8002, loop="asyncio", reload=True)

@@ -98,7 +98,7 @@ Once you've started the API server, you can use Swagger UI to test the API by go
 At present, the API provides two endpoints: `/chat` (live) and `/echo` (test).
 
 `/chat` is used to chat with the network and receives a streamed response. It requires a JSON payload structured as per the QueryValidatorParams class.
-The request payload requires the following parameters encapsulated within the [`QueryValidatorParams`](./validators/base.py) data class:
+The request payload requires the following parameters encapsulated within the [`QueryChatRequest`](./network/meta/schemas.py) data class:
 - `k: int`: The number of miners from which to request responses.
 - `excluded_uids: list[int]`: A list of UIDs to exclude from querying.
 - `roles: List[str]`: The roles of the agents to query. (e.g. `["user"]`).

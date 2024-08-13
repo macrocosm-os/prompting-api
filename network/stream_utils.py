@@ -1,29 +1,56 @@
-import json
-from pydantic import BaseModel
-from typing import Optional, List
+from fastapi import HTTPException
+import bittensor as bt
+from http import HTTPStatus
+
+from common.schemas import QueryChatRequest
+from network.uid_utils import is_uid_validator
 
 
-class StreamChunk(BaseModel):
-    delta: str
-    finish_reason: Optional[str]
-    accumulated_chunks: List[str]
-    accumulated_timings: List[float]
-    timestamp: str
-    sequence_number: int
-    miner_uid: int
-    validator_uid: int
+def validate_request(request: QueryChatRequest, metagraph: "bt.metagraph.Metagraph"):
+    """Validates the request object by doing checking of the parameters"""
 
-    def encode(self, encoding: str) -> bytes:
-        data = json.dumps(self.dict(), indent=4)
-        return data.encode(encoding)
+    if request.k <= 0:
+        # Raise bad request error
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="Bad request because k must be greater than 0",
+        )
 
+    if request.timeout <= 0:
+        # Raise timeout error
+        raise HTTPException(
+            status_code=HTTPStatus.REQUEST_TIMEOUT,
+            detail="Request timed out because timeout must be greater than 0",
+        )
 
-class StreamError(BaseModel):
-    error: str
-    timestamp: str
-    sequence_number: int
-    finish_reason: str = "error"
+    if request.sampling_mode == "list" and not request.uid_list:
+        # Make sure the uid_list is provided
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="uid_list must be provided when sampling_mode is 'list'",
+        )
 
-    def encode(self, encoding: str) -> bytes:
-        data = json.dumps(self.dict(), indent=4)
-        return data.encode(encoding)
+    if request.query_validators:
+        if request.sampling_mode == "list":
+            for uid in request.uid_list:
+                if not is_uid_validator(metagraph, uid):
+                    # Raise error if the UID is not a validator
+                    raise HTTPException(
+                        status_code=HTTPStatus.NOT_FOUND,
+                        detail=f"valdiator UID {uid} in uid_list is not found.",
+                    )
+        elif request.sampling_mode == "top_incentive":
+            # Incentive only applies to validators
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail="sampling mode of top_incentive only applies to miners",
+            )
+
+    if not request.query_validators and request.sampling_mode == "list":
+        for uid in request.uid_list:
+            if is_uid_validator(metagraph, uid):
+                # Raise error if the UID is not a miner
+                raise HTTPException(
+                    status_code=HTTPStatus.NOT_FOUND,
+                    detail=f"miner UID {uid} in uid_list is not found.",
+                )

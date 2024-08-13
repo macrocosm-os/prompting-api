@@ -3,9 +3,8 @@ from fastapi import FastAPI, Request, Body, Depends
 from fastapi.security import APIKeyHeader
 
 from network.neuron import Neuron
-from loguru import logger
 
-from common.schemas import QueryChatRequest, StreamChunkResponse, StreamErrorResponse
+from common.schemas import QueryChatRequest, StreamChunk
 from common import utils
 from common.middlewares import middleware
 
@@ -17,20 +16,26 @@ instance = Neuron()
 @app.post(
     "/chat/",
     responses={
-        400: {"model": StreamErrorResponse},
-        504: {"description": "Stream timed out"},
+        200: {"model": StreamChunk},
+        400: {"description": "Bad request"},
+        504: {"description": "Timed out"},
     },
 )
-async def chat(request: Request, query: QueryChatRequest = Body(...), authorization: str = Depends(security)):
+async def chat(
+    request: Request,
+    query: QueryChatRequest = Body(...),
+    authorization: str = Depends(security),
+):
     """Chat endpoint for the validator"""
+
     query.request = request
     return await instance.query_network(query)
 
 
 @app.post(
     "/echo/",
-    response_model=StreamChunkResponse,
-    responses={400: {"model": StreamErrorResponse}},
+    response_model=StreamChunk,
+    responses={400: {"description": "Bad request"}},
 )
 async def echo_stream(request: Request, query: QueryChatRequest, authorization: str = Depends(security)):
     return await utils.echo_stream(request)

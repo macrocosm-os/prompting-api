@@ -22,7 +22,6 @@ exclude = '''
 | build
 )/
 '''
-
 [tool.isort]
 atomic = true
 profile = "black"
@@ -31,6 +30,7 @@ skip_gitignore = true
 
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
+line-length = 120
 exclude = [
     ".bzr",
     ".direnv",

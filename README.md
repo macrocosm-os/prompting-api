@@ -133,8 +133,6 @@ Responses from the `/chat` endpoint are handled by two classes: `StreamChunk` an
 To test the API locally, you can use the following curl command:
 
 ```bash
-
-```bash
 curl -X 'POST' \
   'http://localhost:8000/chat/' \
   -H 'accept: application/json' \

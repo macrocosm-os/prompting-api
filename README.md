@@ -27,7 +27,7 @@ To run an API server, you will need a bittensor wallet which is registered as a 
 NOTE: At present, miners are choosing not to stream their responses to the network. This means that the server will not be able to provide a streamed response to the client until the miner has finished processing the request. This is a temporary measure and will be resolved in the future.
 
 ## How it works
-The API server is a RESTful API (written using FastAPI) that provides endpoints for interacting with the network. It uses your wallet to create a *validator-like* object called a [`Neuron`](.network/neuron.py) to access the network by making use of a dendrite to make queries.
+The API server is a RESTful API (written using FastAPI) that provides endpoints for interacting with the network. It uses your wallet to create a *validator-like* object called a [`Neuron`](./network/neuron.py) to access the network by making use of a dendrite to make queries.
 
 ## Install
 

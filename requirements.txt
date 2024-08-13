@@ -1,6 +1,0 @@
-git+https://github.com/macrocosm-os/prompting.git
-aiohttp
-deprecated
-aiohttp_apispec>=2.2.3
-aiofiles
-streamlit

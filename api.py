@@ -3,9 +3,8 @@ from fastapi import FastAPI, Request, Body, Depends
 from fastapi.security import APIKeyHeader
 
 from network.neuron import Neuron
-
-from network.meta.schemas import QueryChatRequest, StreamChunk
 from network import echo
+from network.meta.schemas import QueryChatRequest, StreamChunk
 from network.meta.middlewares import middleware
 
 app = FastAPI(middleware=middleware)

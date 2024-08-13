@@ -3,7 +3,7 @@ import settings
 from loguru import logger
 import random
 
-from common.schemas import QueryChatRequest
+from network.meta.schemas import QueryChatRequest
 
 
 # TODO: consider using an LRU (or similiar) to cache the UIDs

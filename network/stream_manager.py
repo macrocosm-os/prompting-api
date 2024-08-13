@@ -7,8 +7,8 @@ import time
 from typing import AsyncIterator, Optional
 from loguru import logger
 
-from common.schemas import QueryChatRequest, StreamChunk, StreamError
-from network.protocol import StreamPromptingSynapse
+from network.meta.schemas import QueryChatRequest, StreamChunk, StreamError
+from network.meta.protocol import StreamPromptingSynapse
 
 
 class StreamManager:

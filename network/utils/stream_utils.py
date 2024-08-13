@@ -2,8 +2,8 @@ from fastapi import HTTPException
 import bittensor as bt
 from http import HTTPStatus
 
-from common.schemas import QueryChatRequest
-from network.uid_utils import is_uid_validator
+from network.meta.schemas import QueryChatRequest
+from network.utils.uid_utils import is_uid_validator
 
 
 def validate_request(request: QueryChatRequest, metagraph: "bt.metagraph.Metagraph"):

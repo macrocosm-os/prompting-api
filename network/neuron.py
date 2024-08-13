@@ -3,11 +3,11 @@ from fastapi.responses import StreamingResponse
 from typing import Optional
 from loguru import logger
 
-from network.stream_utils import validate_request
-from network.protocol import StreamPromptingSynapse
+from network.utils.stream_utils import validate_request
+from network.meta.protocol import StreamPromptingSynapse
 from network.stream_manager import StreamManager
-from network.uid_utils import sample_uids
-from common.schemas import QueryChatRequest
+from network.utils.uid_utils import sample_uids
+from network.meta.schemas import QueryChatRequest
 import settings
 
 

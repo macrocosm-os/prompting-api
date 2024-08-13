@@ -4,9 +4,9 @@ from fastapi.security import APIKeyHeader
 
 from network.neuron import Neuron
 
-from common.schemas import QueryChatRequest, StreamChunk
-from common import utils
-from common.middlewares import middleware
+from network.meta.schemas import QueryChatRequest, StreamChunk
+from network import echo
+from network.meta.middlewares import middleware
 
 app = FastAPI(middleware=middleware)
 security = APIKeyHeader(name="api_key", auto_error=False)
@@ -38,21 +38,11 @@ async def chat(
     responses={400: {"description": "Bad request"}},
 )
 async def echo_stream(request: Request, query: QueryChatRequest, authorization: str = Depends(security)):
-    return await utils.echo_stream(request)
+    return await echo.echo_stream(request)
 
 
 test_app = FastAPI(middleware=middleware)
 
 
 if __name__ == "__main__":
-    # Note that the arguments to this file are forwarded to bittensor, even though no
-    # argparse is used here.
-    # parser = argparse.ArgumentParser(description="Run the validator application.")
-    # parser.add_argument("--test", action="store_true", help="Run in test mode.")
-    # args = parser.parse_args()
-    # if args.test:
-    #     uvicorn.run(
-    #         "api:test_app", host="0.0.0.0", port=8000, loop="asyncio", reload=True
-    #     )
-    # else:
-    uvicorn.run("api:app", host="0.0.0.0", port=8002, loop="asyncio", reload=True)
+    uvicorn.run("api:app", host="0.0.0.0", port=8000, loop="asyncio", reload=True)

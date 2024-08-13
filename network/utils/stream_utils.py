@@ -31,6 +31,7 @@ def validate_request(request: QueryChatRequest, metagraph: "bt.metagraph.Metagra
         )
 
     if request.query_validators:
+        # Querying validators
         if request.sampling_mode == "list":
             for uid in request.uid_list:
                 if not is_uid_validator(metagraph, uid):
@@ -45,12 +46,20 @@ def validate_request(request: QueryChatRequest, metagraph: "bt.metagraph.Metagra
                 status_code=HTTPStatus.BAD_REQUEST,
                 detail="sampling mode of top_incentive only applies to miners",
             )
-
-    if not request.query_validators and request.sampling_mode == "list":
-        for uid in request.uid_list:
-            if is_uid_validator(metagraph, uid):
-                # Raise error if the UID is not a miner
+    else:
+        # Querying miners
+        if request.sampling_mode == "list":
+            if request.k > len(request.uid_list):
+                # Raise error if k is greater than the number of UIDs in uid_list
                 raise HTTPException(
-                    status_code=HTTPStatus.NOT_FOUND,
-                    detail=f"miner UID {uid} in uid_list is not found.",
+                    status_code=HTTPStatus.BAD_REQUEST,
+                    detail="k must be less than or equal to the number of UIDs in uid_list",
                 )
+
+            for uid in request.uid_list:
+                if is_uid_validator(metagraph, uid):
+                    # Raise error if the UID is not a miner
+                    raise HTTPException(
+                        status_code=HTTPStatus.NOT_FOUND,
+                        detail=f"miner UID {uid} in uid_list is not found.",
+                    )

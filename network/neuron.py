@@ -6,7 +6,7 @@ from loguru import logger
 from network.utils.stream_utils import validate_request
 from network.meta.protocol import StreamPromptingSynapse
 from network.stream_manager import StreamManager
-from network.utils.uid_utils import sample_uids
+from network.utils.uid_utils import is_uid_validator, sample_uids
 from network.meta.schemas import QueryChatRequest
 import settings
 
@@ -33,6 +33,12 @@ class Neuron:
 
         if params.query_validators:
             logger.debug("Querying validators...")
+            logger.debug(
+                f"Validator: {uids[0]} has stake {self.metagraph.S[uids[0]]} and our min is {settings.VALIDATOR_MIN_STAKE}"
+            )
+            logger.debug(
+                f" Querying valdiators? {params.query_validators} - Is valid?  {is_uid_validator(self.metagraph, uids[0])}"
+            )
 
             # Currently, two OTF validators are running (one is not setting weights),
             # and we may need to specify which validator to consider by setting to our desired port.
@@ -68,3 +74,8 @@ class Neuron:
             return None
 
         return selected_stream
+
+    def resync_metagraph(self):
+        """Resyncs the metagraph and updates the hotkeys and moving averages based on the new metagraph."""
+        self.metagraph.sync(subtensor=self.subtensor)
+        logger.info("Metagraph sync finished")

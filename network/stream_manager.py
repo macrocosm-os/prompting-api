@@ -132,7 +132,7 @@ class StreamManager:
             # the first miner and k > 1.  This works for validators because they only send the last chunk
             # after streaming all miner responses
             logger.warning(
-                f"Only {len(self.selected_miners)} miners responded, less than the {self.request.k} requested"
+                f"Only received {len(self.selected_miners)} miner responses, less than the {self.request.k} requested"
             )
 
         logger.info("Processing of stream finished")

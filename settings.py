@@ -50,3 +50,9 @@ QUERY_UNIQUE_IPS = bool(os.environ.get("QUERY_UNIQUE_IPS", "false") == "true")
 # Validator port to query (used if multiple validators are running on the same uid and we need to specify which port)
 # e.g. OTF has two validators running on SN1 with the same hotkey
 QUERY_VALIDATOR_PORT = os.environ.get("QUERY_VALIDATOR_PORT")
+
+# The minimum staked tao to be considered a validator
+VALIDATOR_MIN_STAKE = int(os.environ.get("VALIDATOR_MIN_STAKE", 4096))
+
+# The interval to resync the metagraph
+RESYNC_METAGRAPH_INTERVAL = int(os.environ.get("RESYNC_METAGRAPH_INTERVAL", 60))

@@ -28,7 +28,8 @@ def sample_uids(metagraph: "bt.metagraph.Metagraph", wallet: "bt.wallet", params
             # Return only 1 random validator from the list
             return random.sample(params.uid_list, 1)
         else:
-            return params.uid_list
+            # Return k random miners from the list
+            return random.sample(params.uid_list, params.k)
     if params.sampling_mode == "random":
         return get_random_uids(
             metagraph=metagraph,
@@ -145,19 +146,19 @@ def get_all_valid_uids(metagraph: "bt.metagraph.Metagraph", wallet: "bt.wallet",
         elif settings.QUERY_UNIQUE_IPS:
             unique_ips.add(ip)
 
-        if not is_uid_availability(uid, metagraph, params):
+        if not is_uid_valid(uid, metagraph, params):
             continue
 
         candidate_uids.append(uid)
     return candidate_uids
 
 
-def is_uid_availability(
+def is_uid_valid(
     uid: int,
     metagraph: "bt.metagraph.Metagraph",
     params: QueryChatRequest,
 ) -> bool:
-    """Check if uid is available. The UID should be available if it is serving and has less than vpermit_tao_limit stake
+    """Check if uid is valid. The UID is valid if it is serving and matches the params
 
     Args:
         metagraph (bt.metagraph.Metagraph): Metagraph object
@@ -172,17 +173,9 @@ def is_uid_availability(
         logger.trace(f"uid: {uid} is not serving")
         return False
 
-    if params.query_validators:
-        # Skip miners
-        if not is_uid_validator(metagraph, uid):
-            return False
-
-        # Filter validator permit < min stake.
-        if params.validator_min_staked_tao > 0 and metagraph.S[uid] < params.validator_min_staked_tao:
-            logger.trace(f"uid: {uid} has vpermit and stake ({metagraph.S[uid]}) < {params.validator_min_staked_tao}")
-            return False
-    elif is_uid_validator(metagraph, uid):
-        # Skip validators
+    if params.query_validators != is_uid_validator(metagraph, uid):
+        # if querying validators (query_validators==True), validator check must pass
+        # if querying miners (query_validators==False), validator check must fail
         return False
 
     # Available otherwise.
@@ -190,5 +183,12 @@ def is_uid_availability(
 
 
 def is_uid_validator(metagraph: "bt.metagraph.Metagraph", uid: int) -> bool:
-    """Is the UID a validator or a miner - based on if it has a permit"""
-    return bool(metagraph.validator_permit[uid])
+    """Is the UID a validator or a miner -
+    there is no really good way to do this but we should make validators most restictive
+    and, otherwise, assume the UID is a miner.  Validators should have a permit and enough stake
+    as well as be active (updated extrinsics in the last ~1k blocks)"""
+    return (
+        (settings.VALIDATOR_MIN_STAKE <= metagraph.S[uid])
+        and bool(metagraph.validator_permit[uid])
+        and bool(metagraph.active[uid])
+    )

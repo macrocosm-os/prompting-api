@@ -1,14 +1,14 @@
 from pydantic import BaseModel, Field
-from typing import Optional, Literal, Any
+from typing import Optional, Literal
 import json
 
 
 class QueryChatRequest(BaseModel):
     k: Optional[int] = Field(
         default=1,
-        description="The number of miners or validators from which to request responses.",
+        description="The number of miners from which to request responses.",
     )
-    excluded_uids: Optional[list[str]] = Field(None, description="A list of UIDs to exclude from querying.")
+    excluded_uids: Optional[list[int]] = Field(None, description="A list of UIDs to exclude from querying.")
     roles: list[str] = Field(..., description="The roles of the agents to query.")
     messages: list[str] = Field(..., description="The messages to be sent to the network.")
     timeout: Optional[int] = Field(5, description="The time in seconds to wait for a response.")
@@ -16,9 +16,7 @@ class QueryChatRequest(BaseModel):
     sampling_mode: Literal["random", "list", "top_incentive"] = Field(
         "list", description="The mode of sampling the miners."
     )
-    validator_min_staked_tao: Optional[int] = Field(4096, description="The minimum tao for a validator to be queried.")
     uid_list: Optional[list[int]] = Field([5], description="List of uids to sample from, if sampling_mode is 'list'.")
-    request: Optional[Any]
 
 
 class StreamChunk(BaseModel):

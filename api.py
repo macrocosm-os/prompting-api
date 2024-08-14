@@ -70,4 +70,4 @@ async def echo_stream(request: Request, query: QueryChatRequest, authorization: 
 
 
 if __name__ == "__main__":
-    uvicorn.run("api:app", host="0.0.0.0", port=8002, loop="asyncio", reload=True)
+    uvicorn.run("api:app", host="0.0.0.0", port=8000, loop="asyncio", reload=True)

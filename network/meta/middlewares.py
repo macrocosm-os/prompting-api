@@ -32,20 +32,3 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
 
 
 middleware = [Middleware(APIKeyMiddleware)]
-
-
-# @middleware
-# async def json_parsing_middleware(request: Request, handler):
-#     if request.path.startswith("/docs") or request.path.startswith("/static/swagger"):
-#         # Skip checks when accessing OpenAPI documentation.
-#         return await handler(request)
-
-#     try:
-#         # Parsing JSON data from the request
-#         request["data"] = await request.json()
-#     except json.JSONDecodeError as e:
-#         bt.logging.error(f"Invalid JSON data: {str(e)}")
-#         return Response(status=400, text="Invalid JSON")
-
-#     # Continue to the next handler if JSON is successfully parsed
-#     return await handler(request)

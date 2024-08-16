@@ -3,8 +3,8 @@ FROM python:3.10-bookworm
 COPY . /app
 WORKDIR /app
 
-EXPOSE 10000
-RUN pip install -r requirements.txt
+EXPOSE 8000
+RUN pip install poetry
+RUN poetry install
 
-ENTRYPOINT ["python", "server.py"]
-
+ENTRYPOINT ["python", "api.py"]

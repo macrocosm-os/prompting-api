@@ -1,14 +1,9 @@
 
 <picture>
     <source srcset="./assets/macrocosmos-white.png"  media="(prefers-color-scheme: dark)">
-    <img src="assets/macrocosmos-white.png">
-</picture>
-
-<picture>
     <source srcset="./assets/macrocosmos-black.png"  media="(prefers-color-scheme: light)">
-    <img src="assets/macrocosmos-black.png">
+    <img src="macrocosmos-black.png">
 </picture>
-
 
 <br/>
 <br/>
@@ -17,13 +12,13 @@
 # Subnet 1 API
 > Note: This project is still in development and is not yet ready for production use.
 
-The official REST API for Bittensor's flagship subnet 1 ([prompting](https://github.com/opentensor/prompting)), built by [Macrocosmos](https://macrocosmos.ai). 
+The official REST API for Bittensor's flagship subnet 1 ([prompting](https://github.com/opentensor/prompting)), built by [Macrocosmos](https://macrocosmos.ai).
 
 Subnet 1 is an decentralized open source network containing around 1000 highly capable LLM agents. These agents are capable of performing a wide range of tasks, from simple math problems to complex natural language processing tasks. As subnet 1 is constantly evolving, its capabilities are always expanding. Our goal is to provide a world-class inference engine, to be used by developers and researchers alike.
 
 This API is designed to power applications and facilitate the interaction between subnets by providing a simple and easy-to-use interface for developers which enables:
 1. **Conversation**: Chatting with the network (streaming and non-streaming)
-2. **Data cleaning**: Filtering empty and otherwise useless responses 
+2. **Data cleaning**: Filtering empty and otherwise useless responses
 3. **Advanced inference**: Providing enhanced responses using SOTA ensembling techniques (WIP)
 
 Validators can use this API to interact with the network and perform various tasks.
@@ -32,54 +27,57 @@ To run an API server, you will need a bittensor wallet which is registered as a 
 NOTE: At present, miners are choosing not to stream their responses to the network. This means that the server will not be able to provide a streamed response to the client until the miner has finished processing the request. This is a temporary measure and will be resolved in the future.
 
 ## How it works
-The API server is a RESTful API that provides endpoints for interacting with the network. It is a simple [wrapper](./validators/sn1_validator_wrapper.py) around your subnet 1 validator, which makes use of the dendrite to make queries.
+The API server is a RESTful API (written using FastAPI) that provides endpoints for interacting with the network. It uses your wallet to create a *validator-like* object called a [`Neuron`](./network/neuron.py) to access the network by making use of a dendrite to make queries.
 
 ## Install
-Create a new python environment and install the dependencies with the command. 
 
-(First time only)
-```bash
-python3.10 -m venv env
-source env/bin/activate
-pip install -r requirements.txt
+Run:
+```sh
+poetry install
 ```
-
-> Note:  This project requires python >=3.10.
-
-> Note: Currently the prompting library is only installable on machines with cuda devices (NVIDIA-GPU).
+to install all packages
 
 ## Run
 
-First activate the virtual environment and then run the following command to start the server:
+First activate the virtual environment:
 
 ```bash
-source env/bin/activate
+poetry shell
 ```
 
-Run an API server on subnet 1 with the following command:
+Then, set up your `.env` file by copying `.env.example` and going through each setting including setting an API key (which is optional).
+
+### Running On SN1
+
+Run an API server on subnet 61 (test subnet) with the following command:
 
 ```bash
-PORT=<API_PORT> VAL_PORT=<VALIDATOR_AXON_PORT> VAL_IP=<VALIDATOR_AXON_IP> EXPECTED_ACCESS_KEY=<ACCESS_KEY> python server.py --wallet.name <WALLET_NAME> --wallet.hotkey <WALLET_HOTKEY> --netuid <NETUID> --neuron.model_id mock --neuron.tasks math --neuron.task_p 1 --neuron.device cpu --neuron.axon_off
+python api.py
 ```
 
-The command ensures that no GPU memory is used by the server, and that the large models used by the incentive mechanism are not loaded.
+Environment variables (`.env`):
 
-Environment variables:
-
-- EXPECTED_ACCESS_KEY: API access key.
-- PORT: API port.
-- VAL_PORT: Validator axon port, optional. Needed if there are multiple validators running the same hotkey on the network.
-- VAL_IP: Validator axon ip, optional. Needed if there are multiple validators running the same hotkey on the network.
+- `EXPECTED_ACCESS_KEY`: API access key
+- `COLDKEY_WALLET_NAME`: The coldkey wallet name
+- `HOTKEY_WALLET_NAME`: The hotkey wallet name linked to the cold key
+- `WALLET_PATH`: The path to the bittensor wallet
+- `SUBTENSOR_NETWORK`: The bittensor network name (`finney` (main) or `test` or `local` - Default: `finney`)
+- `NETUID`: The bittensor network UID (for SN1, this should be `1` - Default: `1`)
+- `QUERY_UNIQUE_COLDKEYS`: When querying multiple miners, we will query unique coldkeys only once (Default: `false`)
+- `QUERY_UNIQUE_IPS`: When querying multiple miners, we will query unique IPs only once (Default: `false`)
+- `QUERY_VALIDATOR_PORT`: When querying validators, we will use this port number
+- `VALIDATOR_MIN_STAKE`: The minimal TAO staked on a UID to be considered a validator
+- `RESYNC_METAGRAPH_INTERVAL`: The interval in seconds on how often the API refreshes its metagraph (updates UID statuses)
 
 > Note: This command is subject to change as the project evolves.
 
-We recommend that you run the server using a process manager like PM2. This will ensure that the server is always running and will restart if it crashes. 
+We recommend that you run the server using a process manager like PM2. This will ensure that the server is always running and will restart if it crashes.
 
 ```bash
-PORT=<API_PORT> VAL_PORT=<VALIDATOR_AXON_PORT> VAL_IP=<VALIDATOR_AXON_IP> pm2 start server.py --interpreter python3 --name sn1-api -- --wallet.name <WALLET_NAME> --wallet.hotkey <WALLET_HOTKEY> --netuid <NETUID> --neuron.model_id mock --neuron.tasks math --neuron.task_p 1 --neuron.device cpu --neuron.axon_off
+pm2 start api.py --interpreter python3 --name sn1-api
 ```
 
-### Run with Docker
+### Run with Docker (WARNING: not tested)
 
 To run api in docker container you have to build the image:
 ```
@@ -89,71 +87,131 @@ after the image is build properly
 you can start it with command:
 
 ```
-docker run -e EXPECTED_ACCESS_KEY=<ACCESS_KEY> prompting-api:latest --interpreter python3 --name sn1-api -- --wallet.name <WALLET_NAME> --wallet.hotkey <WALLET_HOTKEY> --netuid <NETUID> --neuron.model_id mock --neuron.tasks math --neuron.task_p 1 --neuron.device cpu --neuron.axon_off
+docker run -e prompting-api:latest --interpreter python3 --name sn1-api
 ```
 
-## API Usage
-At present, the API provides two endpoints: `/chat` (live) and `/echo` (test). 
+## Testing the API
 
-`/chat` is used to chat with the network and receive a response. It requires a JSON payload structured as per the QueryValidatorParams class.
-The request payload requires the following parameters encapsulated within the [`QueryValidatorParams`](./validators/base.py) data class:
+Once you've started the API server, you can use Swagger UI to test the API by going to [http://localhost:8000/docs](http://localhost:8000/docs)
+
+## API Usage
+At present, the API provides two endpoints: `/chat` (live) and `/echo` (test).
+
+`/chat` is used to chat with the network and receives a streamed response. It requires a JSON payload structured as per the QueryValidatorParams class.
+The request payload requires the following parameters encapsulated within the [`QueryChatRequest`](./network/meta/schemas.py) data class:
 - `k: int`: The number of miners from which to request responses.
-- `exclude: List[str]`: A list of roles or agents to exclude from querying.
-- `roles: List[str]`: The roles of the agents to query.
-- `messages: List[str]`: The messages to be sent to the network.
+- `excluded_uids: list[int]`: A list of UIDs to exclude from querying.
+- `roles: List[str]`: The roles of the agents to query. (e.g. `["user"]`).
+- `messages: List[str]`: The messages to be sent to the network (e.g. `["as above, so below"]`).
 - `timeout: int`: The time in seconds to wait for a response.
-- `prefer: str`: The preferred response format, can be either `'longest'` or `'shortest'`.
-- `request: Request`: The original request object encapsulating all request data.
-- `sampling_mode: str`: The mode of sampling to use, defaults to `"random"`. Can be either `"random"` or `"top_incentive"`
+- `query_validators: bool`: Whether to query validators (`true` = validators (default) | `false` = miners).
+- `sampling_mode: str`: The mode of sampling to use, defaults to `list`. Can be either `list` (default), `random`, or `top_incentive` (Note: `top_incentive` is only for when querying miners directly - `query_validators = "false"`).
+- `uid_list: List[int]`: When sampling_mode = `list`, this must contain the list of UIDs that will be considered (Default: `5` the opentensor validator UID).
 
 Responses from the `/chat` endpoint are handled by two classes: `StreamChunk` and `StreamError`, with their attributes defined as follows:
 - `StreamChunk`:
   - `delta: str`: The new chunk of response received.
-  - `finish_reason: Optional[str]`: The reason for the response completion, if applicable Can be `None`, `finished` or `error` (check StreamError below).
+  - `finish_reason: Optional[str]`: The reason for the response completion, if applicable Can be `None` or `completed` (Note: A `completed` chunk will still be sent when a `StreamError` occurs).
   - `accumulated_chunks: List[str]`: All chunks of responses accumulated thus far.
-  - `accumulated_chunks_timings: List[float]`: Timing for each chunk received.
+  - `accumulated_timings: List[float]`: Timing for each chunk received.
   - `timestamp: str`: The timestamp at which the chunk was processed.
-  - `sequence_number: int`: A sequential identifier for the response part.
-  - `selected_uid: int`: The identifier for the selected response source.
+  - `sequence_number: int`: A sequential identifier for the response part (for the `finish_reason = "completed"`, this will be `-1`).
+  - `miner_uid: int`: The miner identifier for the response source (if not known or does not apply, this will be `-1`).
+  - `validator_uid: int`: The validator identifier for the response source (if querying miners, this will be `-1`).
 
 - `StreamError`:
   - `error: str`: Description of the error occurred.
   - `timestamp: str`: The timestamp of the error.
   - `sequence_number: int`: A sequential identifier for the error.
   - `finish_reason: str`: Always set to `'error'` to indicate an error completion.
+  - `miner_uid: int`: The miner identifier for the response source (if not known or does not apply, this will be `-1`).
+  - `validator_uid: int`: The validator identifier for the response source (if not known or when querying miners, this will be `-1`).
 
 > Note: The API is subject to change as the project evolves.
 
-## Testing
+## Testing Locally
 To test the API locally, you can use the following curl command:
 
 ```bash
-curl --no-buffer -X POST http://0.0.0.0:10000/chat/ -H "api_key: <ACCESS_KEY>" -H "Content-Type: application/json" -d '{"k": 5, "timeout": 15, "roles": ["user"], "messages": ["Tell me a happy story about a rabbit and a turtle that meet on a budget cruise around Northern Ireland"]}'
+curl -X 'POST' \
+  'http://localhost:8000/chat/' \
+  -H 'accept: application/json' \
+  -H 'api_key: <<API_KEY>>' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "k": 1,
+  "excluded_uids": [
+    0
+  ],
+  "roles": [
+    "user"
+  ],
+  "messages": [
+    "as above, so below"
+  ],
+  "timeout": 5,
+  "query_validators": true,
+  "sampling_mode": "list",
+  "uid_list": [
+    5
+  ]
+}'
 ```
+
 > Note: Use the `--no-buffer` flag to ensure that the response is streamed back to the client.
 
-The above example prompt yields the following.
+The above example prompt yields the following streamed response (each JSON object being a chunk):
 
-Streamed response:
-```
-Once upon a time, a rabbit named Rosie and a turtle named Tim embarked on a budget cruise around Northern Ireland. Despite their differences in speed, Rosie's energetic hopping and Tim's slow but steady pace, they quickly became friends during the voyage. \n\nAs they explored the stunning landscapes and quaint villages along the coast, Rosie and Tim discovered a shared love for adventure and new experiences. They enjoyed sampling local cuisine, attending traditional music sessions, and participating in fun onboard activities.\n\nOne memorable evening, under the shimmering Northern Lights, Rosie and Tim danced together on the deck, celebrating their unlikely friendship and the beauty of the world around them. Their bond transcended their differences, proving that true companionship knows no boundaries.\n\nAt the end of the cruise, as they bid farewell to their fellow travelers and the enchanting sights of Northern Ireland, Rosie and Tim knew that their special connection would last a lifetime. And so, with hearts full of joy and memories to cherish, the rabbit and the turtle set off on new adventures, forever grateful for the magical journey they shared.
-```
-Final JSON:
 ```json
-{\"streamed_chunks\": [\"Once upon a time, a rabbit named Rosie and a turtle named Tim embarked on a budget cruise around Northern Ireland. Despite their differences in speed, Rosie's energetic hopping and Tim's slow but steady pace, they quickly became friends during the voyage. \\\\n\\\\nAs they explored the stunning landscapes and quaint villages along the coast, Rosie and Tim discovered a shared love for adventure and new experiences. They enjoyed sampling local cuisine, attending traditional music sessions, and participating in fun onboard activities.\\\\n\\\\nOne memorable evening, under the shimmering Northern Lights, Rosie and Tim danced together on the deck, celebrating their unlikely friendship and the beauty of the world around them. Their bond transcended their differences, proving that true companionship knows no boundaries.\\\\n\\\\nAt the end of the cruise, as they bid farewell to their fellow travelers and the enchanting sights of Northern Ireland, Rosie and Tim knew that their special connection would last a lifetime. And so, with hearts full of joy and memories to cherish, the rabbit and the turtle set off on new adventures, forever grateful for the magical journey they shared.\"], \"streamed_chunks_timings\": [4.6420252323150635], \"uid\": 559, \"completion\": \"Once upon a time, a rabbit named Rosie and a turtle named Tim embarked on a budget cruise around Northern Ireland. Despite their differences in speed, Rosie's energetic hopping and Tim's slow but steady pace, they quickly became friends during the voyage. \\\\n\\\\nAs they explored the stunning landscapes and quaint villages along the coast, Rosie and Tim discovered a shared love for adventure and new experiences. They enjoyed sampling local cuisine, attending traditional music sessions, and participating in fun onboard activities.\\\\n\\\\nOne memorable evening, under the shimmering Northern Lights, Rosie and Tim danced together on the deck, celebrating their unlikely friendship and the beauty of the world around them. Their bond transcended their differences, proving that true companionship knows no boundaries.\\\\n\\\\nAt the end of the cruise, as they bid farewell to their fellow travelers and the enchanting sights of Northern Ireland, Rosie and Tim knew that their special connection would last a lifetime. And so, with hearts full of joy and memories to cherish, the rabbit and the turtle set off on new adventures, forever grateful for the magical journey they shared.\", \"timing\": 4.720629930496216}"
+{
+    "delta": "As above, so below\" is a found-footage horror film set in the catacombs of paris. The story follows jeff and steph, two young filmmakers who use their equipment to explore the catacombs, searching for their missing friend ben, who has been obsessed with the site. During their journey, they uncover a dark conspiracy involving a secret society that worships an ancient deity, known as \"the keeper,\" w",
+    "finish_reason": null,
+    "accumulated_chunks": [
+        "As above, so below\" is a found-footage horror film set in the catacombs of paris. The story follows jeff and steph, two young filmmakers who use their equipment to explore the catacombs, searching for their missing friend ben, who has been obsessed with the site. During their journey, they uncover a dark conspiracy involving a secret society that worships an ancient deity, known as \"the keeper,\" w"
+    ],
+    "accumulated_timings": [
+        1.77962112496607
+    ],
+    "timestamp": "2024-08-13T12:51:16.732858+00:00",
+    "sequence_number": 1,
+    "miner_uid": 527,
+    "validator_uid": 5
+}{
+    "delta": "ho is said to reside in the catacombs. The film is directed by john erick dowdle and written by edward r. Pressman.",
+    "finish_reason": null,
+    "accumulated_chunks": [
+        "As above, so below\" is a found-footage horror film set in the catacombs of paris. The story follows jeff and steph, two young filmmakers who use their equipment to explore the catacombs, searching for their missing friend ben, who has been obsessed with the site. During their journey, they uncover a dark conspiracy involving a secret society that worships an ancient deity, known as \"the keeper,\" w",
+        "ho is said to reside in the catacombs. The film is directed by john erick dowdle and written by edward r. Pressman."
+    ],
+    "accumulated_timings": [
+        1.77962112496607,
+        2.572092041024007
+    ],
+    "timestamp": "2024-08-13T12:51:17.525321+00:00",
+    "sequence_number": 2,
+    "miner_uid": 527,
+    "validator_uid": 5
+}{
+    "delta": "",
+    "finish_reason": "completed",
+    "accumulated_chunks": [],
+    "accumulated_timings": [
+        3.2269902910338715
+    ],
+    "timestamp": "2024-08-13T12:51:18.180205+00:00",
+    "sequence_number": -1,
+    "miner_uid": -1,
+    "validator_uid": 5
+}
 ```
 After verifying that the server is responding to requests locally, you can test the server on a remote machine.
-
-## OpenAPI
-To access OpenAPI specification, go to:
-[http://localhost:10000/docs](http://localhost:10000/docs)
 
 ### Troubleshooting
 
 If you do not receive a response from the server, check that the server is running and that the port is open on the server. You can open the port using the following commands:
 
 ```bash
-sudo ufw allow 10000/tcp
+sudo ufw allow 8000/tcp
 ```
 
 ---
@@ -169,4 +227,4 @@ You can find out more about the project by visiting the [Macrocosmos website](ht
 [![Twitter](https://img.shields.io/badge/Twitter-%231DA1F2.svg?style=for-the-badge&logo=twitter&logoColor=white)](https://twitter.com/MacrocosmosAI)
 [![X](https://img.shields.io/badge/X-%23000000.svg?style=for-the-badge&logo=X&logoColor=white)](https://twitter.com/MacrocosmosAI)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?logo=linkedin&logoColor=white)](www.linkedin.com/in/MacrocosmosAI)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

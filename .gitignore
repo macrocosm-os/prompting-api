@@ -124,12 +124,14 @@ celerybeat.pid
 
 # Environments
 .env
+.env.*
+!.env.example
 .venv
 env/
 venv/
 ENV/
-env.bak/
-venv.bak/
+env.*/
+venv.*/
 
 # Spyder project settings
 .spyderproject
@@ -167,3 +169,4 @@ core
 app.config.js
 wandb
 .vscode
+requests_db.jsonl
